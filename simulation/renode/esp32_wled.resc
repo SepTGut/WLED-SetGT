@@ -1,0 +1,13 @@
+# Renode Execution Script for WLED ESP32 Firmware Emulation
+
+using sysbus
+$name?="WLED_Node"
+mach create $name
+machine LoadPlatformDescription @simulation/renode/esp32.repl
+
+$bin?=@.pio/build/esp32dev/firmware.elf
+sysbus LoadELF $bin
+
+showAnalyzer uart0
+echo "WLED ESP32 Firmware loaded into Renode RAM successfully!"
+start

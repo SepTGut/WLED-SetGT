@@ -224,7 +224,6 @@ setInterval(() => {
 
   const mW = 15;
   const mH = 20;
-  const numMatrixLeds = mW * mH; // 300
   const totalLeds = 900;
   const buffer = Buffer.alloc(4 + totalLeds * 3);
 

@@ -188,9 +188,7 @@
     window.addEventListener('resize', resizeCanvas);
 
     let currentState = { on: true, bri: 128 };
-    let frameCount = 0;
 
-    // WebSocket Connection to Mock Server
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${location.host}`);
     ws.binaryType = 'arraybuffer';
@@ -218,11 +216,9 @@
       if (bytes[0] !== 76 || bytes[1] !== 2) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const mW = bytes[2]; // 15
-      const mH = bytes[3]; // 20
-      const totalLeds = 900;
+      const mW = bytes[2];
+      const mH = bytes[3];
 
-      // Draw Outputs 1 & 2 (150 LEDs each - Top horizontal strips)
       const strip1W = (canvas.width - 40) / 150;
       for (let i = 0; i < 150; i++) {
         const off = 4 + i * 3;
@@ -236,7 +232,6 @@
         ctx.fillRect(20 + (i - 150) * strip1W, 42, Math.max(1, strip1W - 1), 12);
       }
 
-      // Draw Output 3 (300 LEDs - Middle strip)
       const strip3W = (canvas.width - 40) / 300;
       for (let i = 300; i < 600; i++) {
         const off = 4 + i * 3;
@@ -244,7 +239,6 @@
         ctx.fillRect(20 + (i - 300) * strip3W, 64, Math.max(1, strip3W - 1), 12);
       }
 
-      // Draw Output 4 (300 LEDs - 15x20 2D Matrix Canvas Grid)
       const matrixSize = Math.min((canvas.width - 40) / mW, (canvas.height - 120) / mH);
       const startX = (canvas.width - mW * matrixSize) / 2;
       const startY = 100;

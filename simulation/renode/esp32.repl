@@ -1,0 +1,18 @@
+// Renode Peripheral Description for ESP32 Dual-Core Xtensa LX6
+
+cpu0: CPU.Xtensa @ sysbus
+    cpuType: "lx6"
+    endianness: Endianness.Little
+
+cpu1: CPU.Xtensa @ sysbus
+    cpuType: "lx6"
+    endianness: Endianness.Little
+
+iram: Memory.MappedMemory @ sysbus 0x40080000
+    size: 0x20000
+
+dram: Memory.MappedMemory @ sysbus 0x3FFAE000
+    size: 0x52000
+
+uart0: UART.Espressif_UART @ sysbus 0x3FF40000
+    IRQ -> cpu0@0
