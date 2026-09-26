@@ -74,11 +74,11 @@
 
     [ "esp_slave1:GND.1", "strip_slave1:GND", "black", [ "v0" ] ],
     [ "esp_slave1:5V", "strip_slave1:VCC", "red", [ "v0" ] ],
-    [ "esp_slave1:16", "strip_slave1:DIN", "green", [ "h0" ] ],
+    [ "esp_slave1:2", "strip_slave1:DIN", "green", [ "h0" ] ],
 
     [ "esp_slave2:GND.1", "strip_slave2:GND", "black", [ "v0" ] ],
     [ "esp_slave2:5V", "strip_slave2:VCC", "red", [ "v0" ] ],
-    [ "esp_slave2:17", "strip_slave2:DIN", "yellow", [ "h0" ] ],
+    [ "esp_slave2:3", "strip_slave2:DIN", "yellow", [ "h0" ] ],
 
     [ "esp_slave3:GND.1", "strip_slave3:GND", "black", [ "v0" ] ],
     [ "esp_slave3:5V", "strip_slave3:VCC", "red", [ "v0" ] ],
