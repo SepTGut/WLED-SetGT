@@ -2,3 +2,9 @@
 version = 1
 firmware = '../.pio/build/esp32dev/firmware.elf'
 elf = '../.pio/build/esp32dev/firmware.elf'
+
+# Wokwi Wi-Fi & Gateway Settings
+# Connecting to simulated AP 'Wokwi-GUEST' enables full WLED web server & API access
+# https://docs.wokwi.com/guides/esp32-wifi
+[net]
+gdbServer = true
