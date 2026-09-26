@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WLED Automation Engine</title>
+	<style>
+		:root {
+			--bg: #1a1a24;
+			--card: #242434;
+			--accent: #4361ee;
+			--text: #e2e8f0;
+			--text-dim: #94a3b8;
+			--success: #10b981;
+			--danger: #ef4444;
+			--border: #334155;
+		}
+		* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+		body { background: var(--bg); color: var(--text); padding: 20px; max-width: 800px; margin: 0 auto; }
+		header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+		h1 { font-size: 1.5rem; font-weight: 600; color: #fff; }
+		.btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
+		.btn:hover { opacity: 0.9; }
+		.btn-danger { background: var(--danger); }
+		.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+		.rule-info { flex: 1; }
+		.rule-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; }
+		.rule-detail { font-size: 0.875rem; color: var(--text-dim); }
+		.switch { position: relative; display: inline-block; width: 44px; height: 24px; margin-right: 12px; }
+		.switch input { opacity: 0; width: 0; height: 0; }
+		.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 24px; }
+		.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+		input:checked + .slider { background-color: var(--success); }
+		input:checked + .slider:before { transform: translateX(20px); }
+		
+		/* Modal */
+		.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 100; }
+		.modal.active { display: flex; }
+		.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
+		.form-group { margin-bottom: 16px; }
+		label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--text-dim); }
+		input[type="text"], input[type="number"], select { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.95rem; }
+		.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+	</style>
+</head>
+<body>
+	<header>
+		<h1>Automation Rules</h1>
+		<button class="btn" onclick="openModal()">+ Add Rule</button>
+	</header>
+
+	<div id="rulesList">Loading rules...</div>
+
+	<!-- Add / Edit Modal -->
+	<div class="modal" id="ruleModal">
+		<div class="modal-content">
+			<h2 id="modalTitle" style="margin-bottom: 16px;">Add Rule</h2>
+			<form id="ruleForm" onsubmit="saveRule(event)">
+				<input type="hidden" id="ruleId">
+				<div class="form-group">
+					<label>Rule Name</label>
+					<input type="text" id="ruleName" required placeholder="e.g. Night Preset">
+				</div>
+				<div class="form-group">
+					<label>Trigger Type</label>
+					<select id="trigType" onchange="updateFormFields()">
+						<option value="0">Time (HH:MM)</option>
+						<option value="1">Sunrise / Sunset</option>
+						<option value="2">WLED State Change</option>
+						<option value="3">MQTT Message</option>
+					</select>
+				</div>
+				
+				<!-- Trigger Specific Fields -->
+				<div id="trigTimeFields" class="form-group">
+					<label>Time (Hour / Minute)</label>
+					<div style="display: flex; gap: 8px;">
+						<input type="number" id="timeH" min="0" max="23" placeholder="Hour (0-23)">
+						<input type="number" id="timeM" min="0" max="59" placeholder="Min (0-59)">
+					</div>
+				</div>
+
+				<div id="trigSolarFields" class="form-group" style="display: none;">
+					<label>Solar Event</label>
+					<select id="solarType">
+						<option value="0">Sunrise</option>
+						<option value="1">Sunset</option>
+					</select>
+					<label style="margin-top: 8px;">Offset (Minutes, +/-)</label>
+					<input type="number" id="solarOffset" value="0" placeholder="e.g. -15 for 15m before">
+				</div>
+
+				<div id="trigStateFields" class="form-group" style="display: none;">
+					<label>State Trigger Event</label>
+					<select id="stateType">
+						<option value="0">Power ON / OFF</option>
+						<option value="1">Preset Change</option>
+					</select>
+					<label style="margin-top: 8px;">Target Value (1=ON / 0=OFF / Preset ID)</label>
+					<input type="number" id="stateVal" min="0" value="1">
+				</div>
+
+				<div id="trigMqttFields" class="form-group" style="display: none;">
+					<label>MQTT Topic</label>
+					<input type="text" id="mqttTopic" placeholder="wled/trigger">
+					<label style="margin-top: 8px;">Expected Payload (Optional)</label>
+					<input type="text" id="mqttPayload" placeholder="ON">
+				</div>
+
+				<div class="form-group">
+					<label>Action Type</label>
+					<select id="actType" onchange="updateFormFields()">
+						<option value="0">Apply Preset</option>
+						<option value="1">Toggle Power</option>
+						<option value="2">API Command (JSON)</option>
+					</select>
+				</div>
+
+				<!-- Action Specific Fields -->
+				<div id="actPresetFields" class="form-group">
+					<label>Preset ID</label>
+					<input type="number" id="presetId" min="1" value="1">
+				</div>
+
+				<div id="actPowerFields" class="form-group" style="display: none;">
+					<label>Power State</label>
+					<select id="powerState">
+						<option value="1">Turn ON</option>
+						<option value="0">Turn OFF</option>
+						<option value="2">Toggle</option>
+					</select>
+				</div>
+
+				<div id="actApiFields" class="form-group" style="display: none;">
+					<label>JSON API Payload</label>
+					<input type="text" id="apiCommand" placeholder='{"on":true,"bri":128}'>
+				</div>
+
+				<div class="modal-actions">
+					<button type="button" class="btn btn-danger" onclick="closeModal()">Cancel</button>
+					<button type="submit" class="btn">Save Rule</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script>
+		let loadedRules = [];
+
+		function sanitizeHtml(str) {
+			if (!str) return '';
+			return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		}
+
+		async function fetchRules() {
+			try {
+				const res = await fetch('/json/state');
+				const data = await res.json();
+				if (data.AutomationEngine && data.AutomationEngine.rules) {
+					loadedRules = data.AutomationEngine.rules;
+					renderRules();
+				} else {
+					document.getElementById('rulesList').innerText = 'Automation Engine not enabled or no rules found.';
+				}
+			} catch(e) {
+				document.getElementById('rulesList').innerText = 'Error loading rules: ' + e;
+			}
+		}
+
+		function renderRules() {
+			const container = document.getElementById('rulesList');
+			if (loadedRules.length === 0) {
+				container.innerHTML = '<p style="color: var(--text-dim);">No automation rules created yet.</p>';
+				return;
+			}
+
+			const trigNames = ["Time", "Sunrise/Sunset", "State Change", "MQTT"];
+			const actNames = ["Apply Preset", "Toggle Power", "API Command"];
+
+			container.innerHTML = loadedRules.map(r => `
+				<div class="card">
+					<div class="rule-info">
+						<div class="rule-name">${sanitizeHtml(r.name) || 'Rule #' + r.id}</div>
+						<div class="rule-detail">Trigger: ${trigNames[r.trigType]} &rarr; Action: ${actNames[r.actType]}</div>
+					</div>
+					<div>
+						<label class="switch">
+							<input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule(${r.id}, this.checked)">
+							<span class="slider"></span>
+						</label>
+						<button class="btn btn-danger" onclick="deleteRule(${r.id})">Delete</button>
+					</div>
+				</div>
+			`).join('');
+		}
+
+		function updateFormFields() {
+			const tt = document.getElementById('trigType').value;
+			document.getElementById('trigTimeFields').style.display = (tt === "0") ? 'block' : 'none';
+			document.getElementById('trigSolarFields').style.display = (tt === "1") ? 'block' : 'none';
+			document.getElementById('trigStateFields').style.display = (tt === "2") ? 'block' : 'none';
+			document.getElementById('trigMqttFields').style.display = (tt === "3") ? 'block' : 'none';
+
+			const at = document.getElementById('actType').value;
+			document.getElementById('actPresetFields').style.display = (at === "0") ? 'block' : 'none';
+			document.getElementById('actPowerFields').style.display = (at === "1") ? 'block' : 'none';
+			document.getElementById('actApiFields').style.display = (at === "2") ? 'block' : 'none';
+		}
+
+		function openModal() {
+			document.getElementById('ruleForm').reset();
+			document.getElementById('ruleId').value = '';
+			updateFormFields();
+			document.getElementById('ruleModal').classList.add('active');
+		}
+
+		function closeModal() {
+			document.getElementById('ruleModal').classList.remove('active');
+		}
+
+		async function saveRule(e) {
+			e.preventDefault();
+			const rule = {
+				id: parseInt(document.getElementById('ruleId').value) || (loadedRules.length + 1),
+				enabled: true,
+				name: document.getElementById('ruleName').value,
+				trigType: parseInt(document.getElementById('trigType').value),
+				timeH: parseInt(document.getElementById('timeH').value) || 0,
+				timeM: parseInt(document.getElementById('timeM').value) || 0,
+				solarType: parseInt(document.getElementById('solarType').value) || 0,
+				solarOffset: parseInt(document.getElementById('solarOffset').value) || 0,
+				stateType: parseInt(document.getElementById('stateType').value) || 0,
+				stateVal: parseInt(document.getElementById('stateVal').value) || 0,
+				mqttTopic: document.getElementById('mqttTopic').value,
+				mqttPayload: document.getElementById('mqttPayload').value,
+				actType: parseInt(document.getElementById('actType').value),
+				presetId: parseInt(document.getElementById('presetId').value) || 1,
+				powerState: parseInt(document.getElementById('powerState').value) || 0,
+				apiCommand: document.getElementById('apiCommand').value
+			};
+
+			const idx = loadedRules.findIndex(r => r.id === rule.id);
+			if (idx >= 0) loadedRules[idx] = rule;
+			else loadedRules.push(rule);
+
+			await syncRules();
+			closeModal();
+		}
+
+		async function toggleRule(id, state) {
+			const r = loadedRules.find(x => x.id === id);
+			if (r) {
+				r.enabled = state;
+				await syncRules();
+			}
+		}
+
+		async function deleteRule(id) {
+			loadedRules = loadedRules.filter(r => r.id !== id);
+			await syncRules();
+		}
+
+		async function syncRules() {
+			await fetch('/json/state', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ AutomationEngine: { rules: loadedRules } })
+			});
+			fetchRules();
+		}
+
+		fetchRules();
+	</script>
+</body>
+</html>

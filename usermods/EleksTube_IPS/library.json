@@ -1,0 +1,7 @@
+{
+  "name": "elekstube_ips",
+  "version": "1.0.0",
+  "build": {
+    "libArchive": false
+  }
+}

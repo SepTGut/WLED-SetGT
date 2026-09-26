@@ -1,0 +1,7 @@
+{
+  "name": "photoresistor_sensor_mqtt_v1",
+  "version": "1.0.0",
+  "build": {
+    "libArchive": false
+  }
+}

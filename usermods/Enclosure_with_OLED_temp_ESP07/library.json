@@ -1,0 +1,7 @@
+{
+  "name": "enclosure_with_oled_temp_esp07",
+  "version": "1.0.0",
+  "build": {
+    "libArchive": false
+  }
+}

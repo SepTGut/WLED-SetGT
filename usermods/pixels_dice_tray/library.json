@@ -1,0 +1,7 @@
+{
+  "name": "pixels_dice_tray",
+  "version": "1.0.0",
+  "build": {
+    "libArchive": false
+  }
+}

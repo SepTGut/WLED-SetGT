@@ -1,0 +1,7 @@
+{
+  "name": "ttgo_t_display",
+  "version": "1.0.0",
+  "build": {
+    "libArchive": false
+  }
+}
