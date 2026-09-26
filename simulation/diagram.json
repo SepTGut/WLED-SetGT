@@ -5,83 +5,68 @@
   "parts": [
     {
       "type": "board-esp32-devkit-c-v4",
-      "id": "esp_master",
+      "id": "esp",
       "top": 0,
       "left": 0,
-      "attrs": { "name": "Master 2D Matrix" }
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip1",
+      "top": -200,
+      "left": 200,
+      "attrs": {
+        "pixels": "150",
+        "gamma": "2.2"
+      }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip2",
+      "top": -100,
+      "left": 200,
+      "attrs": {
+        "pixels": "150",
+        "gamma": "2.2"
+      }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip3",
+      "top": 0,
+      "left": 200,
+      "attrs": {
+        "pixels": "300",
+        "gamma": "2.2"
+      }
     },
     {
       "type": "wokwi-neopixel-matrix",
-      "id": "matrix_master",
-      "top": 0,
-      "left": 220,
+      "id": "matrix1",
+      "top": 120,
+      "left": 200,
       "attrs": {
         "rows": "20",
         "cols": "15",
         "layout": "serpentine"
       }
-    },
-
-    {
-      "type": "board-esp32-c3-devkitm-1",
-      "id": "esp_slave1",
-      "top": 360,
-      "left": 0,
-      "attrs": { "name": "Slave Strip 1" }
-    },
-    {
-      "type": "wokwi-neopixel-canvas",
-      "id": "strip_slave1",
-      "top": 360,
-      "left": 220,
-      "attrs": { "pixels": "150", "gamma": "2.2" }
-    },
-
-    {
-      "type": "board-esp32-c3-devkitm-1",
-      "id": "esp_slave2",
-      "top": 540,
-      "left": 0,
-      "attrs": { "name": "Slave Strip 2" }
-    },
-    {
-      "type": "wokwi-neopixel-canvas",
-      "id": "strip_slave2",
-      "top": 540,
-      "left": 220,
-      "attrs": { "pixels": "150", "gamma": "2.2" }
-    },
-
-    {
-      "type": "board-esp32-devkit-c-v4",
-      "id": "esp_slave3",
-      "top": 720,
-      "left": 0,
-      "attrs": { "name": "Slave Strip 3" }
-    },
-    {
-      "type": "wokwi-neopixel-canvas",
-      "id": "strip_slave3",
-      "top": 720,
-      "left": 220,
-      "attrs": { "pixels": "300", "gamma": "2.2" }
     }
   ],
   "connections": [
-    [ "esp_master:GND.1", "matrix_master:GND", "black", [ "v0" ] ],
-    [ "esp_master:5V", "matrix_master:VCC", "red", [ "v0" ] ],
-    [ "esp_master:19", "matrix_master:DIN", "blue", [ "h0" ] ],
+    [ "esp:GND.1", "strip1:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip1:VCC", "red", [ "v0" ] ],
+    [ "esp:16", "strip1:DIN", "green", [ "h0" ] ],
 
-    [ "esp_slave1:GND.1", "strip_slave1:GND", "black", [ "v0" ] ],
-    [ "esp_slave1:5V", "strip_slave1:VCC", "red", [ "v0" ] ],
-    [ "esp_slave1:2", "strip_slave1:DIN", "green", [ "h0" ] ],
+    [ "esp:GND.1", "strip2:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip2:VCC", "red", [ "v0" ] ],
+    [ "esp:17", "strip2:DIN", "yellow", [ "h0" ] ],
 
-    [ "esp_slave2:GND.1", "strip_slave2:GND", "black", [ "v0" ] ],
-    [ "esp_slave2:5V", "strip_slave2:VCC", "red", [ "v0" ] ],
-    [ "esp_slave2:3", "strip_slave2:DIN", "yellow", [ "h0" ] ],
+    [ "esp:GND.1", "strip3:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip3:VCC", "red", [ "v0" ] ],
+    [ "esp:18", "strip3:DIN", "orange", [ "h0" ] ],
 
-    [ "esp_slave3:GND.1", "strip_slave3:GND", "black", [ "v0" ] ],
-    [ "esp_slave3:5V", "strip_slave3:VCC", "red", [ "v0" ] ],
-    [ "esp_slave3:18", "strip_slave3:DIN", "orange", [ "h0" ] ]
+    [ "esp:GND.1", "matrix1:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "matrix1:VCC", "red", [ "v0" ] ],
+    [ "esp:19", "matrix1:DIN", "blue", [ "h0" ] ]
   ]
 }
