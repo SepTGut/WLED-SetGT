@@ -14,7 +14,7 @@
       "type": "wokwi-neopixel-matrix",
       "id": "matrix_master",
       "top": 0,
-      "left": 250,
+      "left": 220,
       "attrs": {
         "rows": "20",
         "cols": "15",
@@ -25,45 +25,45 @@
     {
       "type": "board-esp32-c3-devkitm-1",
       "id": "esp_slave1",
-      "top": 350,
+      "top": 360,
       "left": 0,
       "attrs": { "name": "Slave Strip 1" }
     },
     {
       "type": "wokwi-neopixel-canvas",
       "id": "strip_slave1",
-      "top": 350,
-      "left": 250,
+      "top": 360,
+      "left": 220,
       "attrs": { "pixels": "150", "gamma": "2.2" }
     },
 
     {
       "type": "board-esp32-c3-devkitm-1",
       "id": "esp_slave2",
-      "top": 550,
+      "top": 540,
       "left": 0,
       "attrs": { "name": "Slave Strip 2" }
     },
     {
       "type": "wokwi-neopixel-canvas",
       "id": "strip_slave2",
-      "top": 550,
-      "left": 250,
+      "top": 540,
+      "left": 220,
       "attrs": { "pixels": "150", "gamma": "2.2" }
     },
 
     {
       "type": "board-esp32-devkit-c-v4",
       "id": "esp_slave3",
-      "top": 750,
+      "top": 720,
       "left": 0,
       "attrs": { "name": "Slave Strip 3" }
     },
     {
       "type": "wokwi-neopixel-canvas",
       "id": "strip_slave3",
-      "top": 750,
-      "left": 250,
+      "top": 720,
+      "left": 220,
       "attrs": { "pixels": "300", "gamma": "2.2" }
     }
   ],
