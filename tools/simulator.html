@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WLED-SetGT 900-LED & 2D Matrix Simulator</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 { font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .badge { background: #238636; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
+
+    .nav-links a {
+      color: var(--accent);
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .nav-links a:hover { background: #1f242c; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    canvas {
+      width: 100%;
+      height: 480px;
+      background: #05070a;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .controls-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .btn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #30363d; color: #fff; }
+    .btn-primary { background: #238636; border-color: #2ea043; color: #fff; }
+    .btn-primary:hover { background: #2ea043; }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .stats-table td { padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .stats-table td:last-child { text-align: right; font-weight: bold; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>✨ WLED-SetGT 900-LED Simulator <span class="badge">ESP32 DevKit V4</span></h1>
+    <div class="nav-links">
+      <a href="/" target="_blank">🌐 Open Main Web UI</a>
+      <a href="/automations.htm" target="_blank">✨ Automations UI</a>
+      <a href="/settings/leds" target="_blank">⚙️ LED Settings</a>
+    </div>
+  </header>
+
+  <div class="grid-layout">
+    <div class="card">
+      <h2>🎨 Live Hardware Visualizer (Outputs 1-4) <span id="fpsCounter" style="font-size: 0.8rem; color: #8b949e;">30 FPS</span></h2>
+      <canvas id="simCanvas"></canvas>
+    </div>
+
+    <div class="card controls-group">
+      <h2>🎛️ Interactive Quick Controls</h2>
+      
+      <div>
+        <label>Master Power</label>
+        <button id="pwrBtn" class="btn btn-primary" style="width: 100%;">Toggle Power (ON)</button>
+      </div>
+
+      <div>
+        <label>Brightness (<span id="briVal">128</span>)</label>
+        <input type="range" id="briSlider" min="0" max="255" value="128">
+      </div>
+
+      <div>
+        <label>Quick Preset / Effect</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button class="btn" onclick="setFx(0)">Solid Warm</button>
+          <button class="btn" onclick="setFx(9)">Rainbow Wave</button>
+          <button class="btn" onclick="setFx(13)">Chase Light</button>
+          <button class="btn" onclick="setFx(84)">2D Fire / Plasma</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <h2>📊 System Metrics</h2>
+        <table class="stats-table">
+          <tr><td>Total LEDs</td><td>900 Pixels</td></tr>
+          <tr><td>Outputs Active</td><td>4 GPIOs (16,17,18,19)</td></tr>
+          <tr><td>2D Matrix Size</td><td>15 x 20 (300 LEDs)</td></tr>
+          <tr><td>Estimated Current</td><td id="mAEst">3,420 mA</td></tr>
+          <tr><td>Firmware Target</td><td>ESP32 DevKit V4</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const briSlider = document.getElementById('briSlider');
+    const briVal = document.getElementById('briVal');
+    const pwrBtn = document.getElementById('pwrBtn');
+    const mAEst = document.getElementById('mAEst');
+
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let currentState = { on: true, bri: 128 };
+    let frameCount = 0;
+
+    // WebSocket Connection to Mock Server
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${location.host}`);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ lv: true }));
+    };
+
+    ws.onmessage = (event) => {
+      if (typeof event.data === 'string') {
+        const data = JSON.parse(event.data);
+        if (data.state) {
+          currentState = data.state;
+          briSlider.value = currentState.bri;
+          briVal.innerText = currentState.bri;
+          pwrBtn.innerText = `Toggle Power (${currentState.on ? 'ON' : 'OFF'})`;
+          pwrBtn.className = currentState.on ? 'btn btn-primary' : 'btn';
+        }
+      } else if (event.data instanceof ArrayBuffer) {
+        renderPixelBuffer(new Uint8Array(event.data));
+      }
+    };
+
+    function renderPixelBuffer(bytes) {
+      if (bytes[0] !== 76 || bytes[1] !== 2) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const mW = bytes[2]; // 15
+      const mH = bytes[3]; // 20
+      const totalLeds = 900;
+
+      // Draw Outputs 1 & 2 (150 LEDs each - Top horizontal strips)
+      const strip1W = (canvas.width - 40) / 150;
+      for (let i = 0; i < 150; i++) {
+        const off = 4 + i * 3;
+        ctx.fillStyle = `rgb(${bytes[off]}, ${bytes[off+1]}, ${bytes[off+2]})`;
+        ctx.fillRect(20 + i * strip1W, 20, Math.max(1, strip1W - 1), 12);
+      }
+
+      for (let i = 150; i < 300; i++) {
+        const off = 4 + i * 3;
+        ctx.fillStyle = `rgb(${bytes[off]}, ${bytes[off+1]}, ${bytes[off+2]})`;
+        ctx.fillRect(20 + (i - 150) * strip1W, 42, Math.max(1, strip1W - 1), 12);
+      }
+
+      // Draw Output 3 (300 LEDs - Middle strip)
+      const strip3W = (canvas.width - 40) / 300;
+      for (let i = 300; i < 600; i++) {
+        const off = 4 + i * 3;
+        ctx.fillStyle = `rgb(${bytes[off]}, ${bytes[off+1]}, ${bytes[off+2]})`;
+        ctx.fillRect(20 + (i - 300) * strip3W, 64, Math.max(1, strip3W - 1), 12);
+      }
+
+      // Draw Output 4 (300 LEDs - 15x20 2D Matrix Canvas Grid)
+      const matrixSize = Math.min((canvas.width - 40) / mW, (canvas.height - 120) / mH);
+      const startX = (canvas.width - mW * matrixSize) / 2;
+      const startY = 100;
+
+      let activeCurrent = 0;
+      for (let y = 0; y < mH; y++) {
+        for (let x = 0; x < mW; x++) {
+          const idx = 600 + (y * mW + x);
+          const off = 4 + idx * 3;
+          const r = bytes[off], g = bytes[off+1], b = bytes[off+2];
+          activeCurrent += (r + g + b) / 3;
+
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.beginPath();
+          ctx.arc(startX + x * matrixSize + matrixSize/2, startY + y * matrixSize + matrixSize/2, matrixSize * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      mAEst.innerText = `${Math.round((activeCurrent / 255) * 450 + 400)} mA`;
+    }
+
+    briSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      briVal.innerText = val;
+      fetch('/json/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bri: val })
+      });
+    });
+
+    pwrBtn.addEventListener('click', () => {
+      const newOn = !currentState.on;
+      fetch('/json/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ on: newOn })
+      });
+    });
+
+    function setFx(fxId) {
+      fetch('/json/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seg: [{ id: 0, fx: fxId }, { id: 1, fx: fxId }, { id: 2, fx: fxId }, { id: 3, fx: fxId }] })
+      });
+    }
+  </script>
+</body>
+</html>
