@@ -6,8 +6,9 @@ const WebSocket = require('ws');
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+wss.on('error', () => {});
 
-const PORT = process.env.PORT || 8080;
+let PORT = parseInt(process.env.PORT || '8080', 10);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -298,11 +299,25 @@ function hueToRgb(p, q, t) {
   return p;
 }
 
-server.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🚀 WLED-SetGT Mock Web & 2D Matrix Server Running!`);
-  console.log(`🌐 WLED Web UI:          http://localhost:${PORT}/`);
-  console.log(`✨ Automations UI:       http://localhost:${PORT}/automations.htm`);
-  console.log(`🎨 2D Matrix Visualizer: http://localhost:${PORT}/simulator`);
-  console.log(`=======================================================`);
+function startServer(portToTry) {
+  server.listen(portToTry, () => {
+    console.log(`=======================================================`);
+    console.log(`🚀 WLED-SetGT Mock Web & 2D Matrix Server Running!`);
+    console.log(`🌐 WLED Web UI:          http://localhost:${portToTry}/`);
+    console.log(`✨ Automations UI:       http://localhost:${portToTry}/automations.htm`);
+    console.log(`🎨 2D Matrix Visualizer: http://localhost:${portToTry}/simulator`);
+    console.log(`=======================================================`);
+  });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    PORT++;
+    console.log(`[!] Port occupied, trying http://localhost:${PORT}/...`);
+    setTimeout(() => startServer(PORT), 100);
+  } else {
+    console.error('Server error:', err);
+  }
 });
+
+startServer(PORT);
