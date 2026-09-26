@@ -1,0 +1,51 @@
+# Renode Multi-Node Distributed Architecture Simulation Script
+# 
+# Architecture:
+# - ESP32_Master_Matrix:  Master controller driving the 300-LED 2D Matrix (15x20)
+# - ESP32_Slave_Strip1:   Slave node 1 driving 150 LEDs (30/m 5m strip)
+# - ESP32_Slave_Strip2:   Slave node 2 driving 150 LEDs (30/m 5m strip)
+# - ESP32_Slave_Strip3:   Slave node 3 driving 300 LEDs (60/m 5m strip)
+#
+# Inter-node Sync: WLED-ESP-NOW / DDP / UDP Sync over simulated wireless medium
+
+using sysbus
+
+echo "========================================================"
+echo "🌐 Initializing Renode Multi-Node Wireless Emulation"
+echo "========================================================"
+
+# 1. Create Shared Wireless Medium for ESP-NOW / DDP UDP Sync
+emulation CreateWirelessMedium "wifi_medium"
+
+# 2. Master Node: ESP32 2D Matrix (300 LEDs)
+mach create "ESP32_Master_Matrix"
+machine LoadPlatformDescription @simulation/renode/esp32.repl
+sysbus LoadELF @.pio/build/esp32dev/firmware.elf
+showAnalyzer uart0
+echo "  [+] Node 1 (Master 2D Matrix 300 LEDs) Initialized"
+
+# 3. Slave Node 1: Strip 1 (150 LEDs)
+mach create "ESP32_Slave_Strip1"
+machine LoadPlatformDescription @simulation/renode/esp32.repl
+sysbus LoadELF @.pio/build/esp32dev/firmware.elf
+showAnalyzer uart0
+echo "  [+] Node 2 (Slave Strip 1 - 150 LEDs) Initialized"
+
+# 4. Slave Node 2: Strip 2 (150 LEDs)
+mach create "ESP32_Slave_Strip2"
+machine LoadPlatformDescription @simulation/renode/esp32.repl
+sysbus LoadELF @.pio/build/esp32dev/firmware.elf
+showAnalyzer uart0
+echo "  [+] Node 3 (Slave Strip 2 - 150 LEDs) Initialized"
+
+# 5. Slave Node 3: Strip 3 (300 LEDs)
+mach create "ESP32_Slave_Strip3"
+machine LoadPlatformDescription @simulation/renode/esp32.repl
+sysbus LoadELF @.pio/build/esp32dev/firmware.elf
+showAnalyzer uart0
+echo "  [+] Node 4 (Slave Strip 3 - 300 LEDs) Initialized"
+
+echo "========================================================"
+echo "🚀 Starting Distributed 4-Node Emulation Network..."
+echo "========================================================"
+start
