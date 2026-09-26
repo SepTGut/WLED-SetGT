@@ -7,4 +7,5 @@ elf = '../.pio/build/esp32dev/firmware.elf'
 # Connecting to simulated AP 'Wokwi-GUEST' enables full WLED web server & API access
 # https://docs.wokwi.com/guides/esp32-wifi
 [net]
+enabled = true
 gdbServer = true
