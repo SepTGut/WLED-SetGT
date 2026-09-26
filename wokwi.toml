@@ -1,0 +1,10 @@
+[wokwi]
+version = 1
+firmware = '.pio/build/esp32dev_V4/firmware.elf'
+elf = '.pio/build/esp32dev_V4/firmware.elf'
+
+# Wokwi Wi-Fi & Gateway Settings
+# https://docs.wokwi.com/guides/esp32-wifi
+[net]
+enabled = true
+gdbServer = true
