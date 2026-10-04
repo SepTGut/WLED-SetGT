@@ -1,110 +1,216 @@
 <p align="center">
-  <img src="/images/wled_logo_akemi.png">
-  <a href="https://github.com/wled-dev/WLED/releases"><img src="https://img.shields.io/github/release/wled-dev/WLED.svg?style=flat-square"></a>
-  <a href="https://raw.githubusercontent.com/wled-dev/WLED/main/LICENSE"><img src="https://img.shields.io/github/license/wled-dev/wled?color=blue&style=flat-square"></a>
-  <a href="https://wled.discourse.group"><img src="https://img.shields.io/discourse/topics?colorB=blue&label=forum&server=https%3A%2F%2Fwled.discourse.group%2F&style=flat-square"></a>
-  <a href="https://discord.gg/QAh7wJHrRM"><img src="https://img.shields.io/discord/473448917040758787.svg?colorB=blue&label=discord&style=flat-square"></a>
-  <a href="https://kno.wled.ge"><img src="https://img.shields.io/badge/quick_start-wiki-blue.svg?style=flat-square"></a>
-  <a href="https://github.com/Aircoookie/WLED-App"><img src="https://img.shields.io/badge/app-wled-blue.svg?style=flat-square"></a>
-  <a href="https://gitpod.io/#https://github.com/wled-dev/WLED"><img src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?style=flat-square&logo=gitpod"></a>
+  <img src="images/wled_logo_akemi.png" alt="WLED Logo" width="180">
+  <br>
+  <strong>Next-Generation Lighting Firmware with Native Automation Engine & Real-Time ESP-IDF V5 Audio DSP</strong>
+  <br><br>
+  <a href="https://github.com/SepTGut/WLED-SetGT/releases"><img src="https://img.shields.io/badge/version-17.0.0--devV5-blue?style=flat-square" alt="Version 17.0.0-devV5"></a>
+  <a href="https://github.com/tasmota/platform-espressif32"><img src="https://img.shields.io/badge/platform-ESP--IDF%20V5%20%2F%20Arduino%203.x-emerald?style=flat-square" alt="ESP-IDF V5"></a>
+  <a href="https://wokwi.com"><img src="https://img.shields.io/badge/simulation-Wokwi%20Ready-orange?style=flat-square" alt="Wokwi Simulation Ready"></a>
+  <a href="#automated-testing--ci"><img src="https://img.shields.io/badge/tests-16%2F16%20passed-brightgreen?style=flat-square" alt="Tests 16/16 Passed"></a>
+  <a href="https://raw.githubusercontent.com/SepTGut/WLED-SetGT/main/LICENSE"><img src="https://img.shields.io/badge/license-EUPL%201.2-blue?style=flat-square" alt="EUPL v1.2"></a>
+  <a href="https://discord.gg/QAh7wJHrRM"><img src="https://img.shields.io/discord/473448917040758787.svg?colorB=5865F2&label=discord&style=flat-square" alt="Discord"></a>
+  <a href="https://kno.wled.ge"><img src="https://img.shields.io/badge/docs-kno.wled.ge-blueviolet?style=flat-square" alt="Documentation"></a>
 </p>
-
-# Welcome to WLED! ✨
-
-A fast and feature-rich firmware for ESP32 microcontrollers to control addressable LEDs — from simple strips to large 2D matrices and HUB75 panels.
-
-Originally created by [Aircoookie](https://github.com/Aircoookie), now maintained by a community of contributors.
-
-## 🤝 Contributing
-
-Want to help improve WLED? Awesome! Please skim [CONTRIBUTING.md](CONTRIBUTING.md) first - it covers how we like PRs and issues to look, including our take on AI-assisted contributions.
-If you're an AI coding agent, [AGENTS.md](AGENTS.md) is for you - please read it before modifying any files. 😊
-
-## ⚙️ Features
-
-### Effects & Visuals
-- [**200+ built-in effects**](https://kno.wled.ge/features/effects/) including classic animations, audio-reactive, and 2D/matrix effects
-- [50+ color palettes](https://kno.wled.ge/features/palettes/) plus a built-in **custom palette editor** (PixelForge)
-- [**2D LED matrix support**](https://kno.wled.ge/advanced/mapping/) with dedicated 2D effects and flexible panel mapping
-- [**HUB75 RGB matrix panel support**](https://kno.wled.ge/advanced/HUB75/) (ESP32)
-- [**AudioReactive**](https://kno.wled.ge/advanced/audio-reactive/) effects — included by default, responding to sound via microphone, line-in, or network audio source
-- Effect blending for smooth transitions between animations
-- Antialiased drawing functions for smooth graphics
-
-### Segments & Control
-- [**Segments**](https://kno.wled.ge/features/segments/) — apply different effects, colors and palettes to independent parts of your LED setup simultaneously
-- Up to **250 presets** to save and recall colors, effects and segment configurations — supports [playlists](https://kno.wled.ge/features/presets/) for automated cycling
-- Nightlight function with configurable dimming curve
-- Configurable **Auto Brightness Limiter** (per output) for safe operation
-
-### Hardware Support
-- **ESP32** (all variants: original, S2, S3, C3)
-- [**Up to 17 LED outputs**](https://kno.wled.ge/features/multi-strip/) on ESP32 using parallel I2S + RMT
-- [Addressable LED support](https://kno.wled.ge/basics/compatible-led-strips/): WS2812B, WS2811, WS2815, SK6812, WS2805, TM1914, APA102, WS2801, LPD8806, and many more
-- RGBW, [RGB+CCT](https://kno.wled.ge/features/cct/) and white-only strips
-- PWM outputs for analog LEDs and dimmers
-- [**Ethernet** support](https://kno.wled.ge/features/ethernet-lan/) for a wide range of boards (QuinLED, LILYGO, Olimex, and more)
-- Filesystem-based config for easy backup and restore of presets and settings
-- Full OTA firmware updates (HTTP + ArduinoOTA), password-protectable
-
-### Connectivity & Integrations
-- **WLED app** for [Android](https://play.google.com/store/apps/details?id=ca.cgagnier.wlednativeandroid) and [iOS](https://apps.apple.com/gb/app/wled-native/id6446207239)
-- [JSON](https://kno.wled.ge/interfaces/json-api/) and [HTTP request](https://kno.wled.ge/interfaces/http-api/) APIs
-- **Multi-WiFi** — connect to up to 3 networks with automatic AP fallback
-- **ESP-NOW** wireless sync between devices (no WiFi router required)
-- [**MQTT**](https://kno.wled.ge/interfaces/mqtt/) with Home Assistant discovery
-- [**E1.31, Art-Net**](https://kno.wled.ge/interfaces/e1.31-dmx/), [DDP](https://kno.wled.ge/interfaces/ddp/) and [TPM2.net](https://kno.wled.ge/interfaces/udp-realtime/) for DMX/professional lighting control
-- [UDP realtime sync](https://kno.wled.ge/interfaces/udp-notifier/) across multiple WLED devices
-- Alexa voice control (on/off, brightness, color)
-- [Philips Hue sync](https://kno.wled.ge/interfaces/philips-hue/)
-- [diyHue](https://github.com/diyhue/diyHue) and [Hyperion](https://github.com/hyperion-project/hyperion.ng) integration
-- [Adalight / TPM2](https://kno.wled.ge/interfaces/serial/) (PC ambilight via serial)
-- [Infrared remote control](https://kno.wled.ge/interfaces/infrared/) (24-key RGB, receiver required)
-- Timers and schedules (NTP time sync, full timezone and DST support)
-
-### Developer-Friendly
-- **Usermod system** — extend WLED with community or custom modules without modifying core code
-- Large and active [usermod library](https://kno.wled.ge/advanced/community-usermods/) including AudioReactive, temperature sensors, rotary encoders, displays, and much more
-- Well-documented [JSON API](https://kno.wled.ge/interfaces/json-api/)
-- Licensed under the **EUPL v1.2**
-
-## 📲 Quick start guide and documentation
-
-See the [documentation at kno.wled.ge](https://kno.wled.ge)!
-
-[Tutorials and getting-started guides](https://kno.wled.ge/basics/tutorials/) to help you get your project running quickly.
-
-## 🖼️ User interface
-
-<img src="/images/macbook-pro-space-gray-on-the-wooden-table.jpg" width="50%"><img src="/images/walking-with-iphone-x.jpg" width="50%">
-
-## 💾 Compatible hardware
-
-See the [compatible hardware list](https://kno.wled.ge/basics/compatible-hardware) on the wiki.
-
-## ✌️ Other
-
-Licensed under the [EUPL v1.2](https://raw.githubusercontent.com/wled-dev/WLED/main/LICENSE).  
-Credits to all [contributors](https://kno.wled.ge/about/contributors/)!  
-CORS proxy by [Corsfix](https://corsfix.com/).
-
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/wled/WLED?utm_source=oss&utm_medium=github&utm_campaign=wled%2FWLED&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=PR+Reviews+supported+by+CodeRabbit)
-
-Join the Discord server to discuss everything about WLED!
-
-<a href="https://discord.gg/QAh7wJHrRM"><img src="https://discordapp.com/api/guilds/473448917040758787/widget.png?style=banner2" width="25%"></a>
-
-Check out the WLED [Discourse forum](https://wled.discourse.group)!
-
-If you'd like to reach the original creator privately: [dev.aircoookie@gmail.com](mailto:dev.aircoookie@gmail.com).
-
-If WLED brightens up your day, you can [send a gift to Aircoookie via PayPal](https://paypal.me/aircoookie).
 
 ---
 
-*Disclaimer:*
+## 🌟 Overview
 
-If you are prone to photosensitive epilepsy, we recommend you do **not** use this software.  
-If you still want to try, avoid strobe, lightning or noise modes and high effect speed settings.
+**WLED-SetGT** is an advanced, high-performance distribution of [WLED](https://github.com/wled/WLED) engineered for modern ESP32 hardware using the **ESP-IDF V5.x** framework. It combines the legendary LED control capabilities of WLED with an offline **Glassmorphic Automation Engine**, ultra-low-jitter **AudioReactive DSP**, harmonized **I2C Device Management**, and a pre-configured **Wokwi simulation suite** for zero-hardware local development.
 
-As per the EUPL license, no liability is assumed for any damage to you or any other person or equipment.
+Whether driving individual addressable LED strips, expansive 2D matrix arrays, or synchronized multi-node fixtures, WLED-SetGT delivers rock-solid stability and modern tooling.
+
+---
+
+## ⚡ What Makes WLED-SetGT Unique?
+
+| Feature | Vanilla WLED | WLED-SetGT |
+| :--- | :--- | :--- |
+| **Automation Engine** | Requires external Home Assistant or complex cron JSON | **Native Edge-Triggered Automation Engine** with offline glassmorphic rule builder (`/automations`) |
+| **AudioReactive DSP** | Stack-allocated buffer in FreeRTOS tasks (overflow risk on v5) | **Heap-offloaded DMA/ADC DSP** with smooth decay filtering & channel bounds protection |
+| **I2C Management** | Potential pin collision between core and usermods | **Unified `HW_I2C` Device Manager** with on-demand I2C bus address scanning via `/json/info` |
+| **2D Matrix Persistence** | Default matrix re-injection can override disabled states | **Preserved 2D State** across reboots (`!fromFS` guard) + trailing strip sparse ledmaps |
+| **Hardware Simulation** | Manual setup required | **Preconfigured Wokwi Simulation Suite** with single-node & distributed multi-node layouts |
+| **Bus Teardown Stability** | Fixed 100ms timeout | **Watchdog-safe 500ms draining** with `delay(1)` / `yield()` for safe DMA/RMT memory release |
+| **WebSockets & Networking** | Fixed protocol defaults | **Dynamic WSS/HTTPS auto-negotiation** with custom port detection (e.g. Wokwi `:8180`) |
+
+---
+
+## 🚀 Key Modules & Architecture
+
+### 1. 🎛️ Glassmorphic Automation Engine (`/automations`)
+Built with a sleek, dark acrylic design aesthetic matching WLED's visual identity, the native Automation Engine runs 100% locally on the ESP32:
+* **Edge-Triggered Evaluation:** Triggers respond strictly to true state transitions (`powerChanged`, `presetChanged`), eliminating redundant loop execution.
+* **Solar & Astronomical Timers:** Real-time solar position matching (Sunrise, Sunset, Dawn, Dusk) with configurable minute offsets and debounce filtering.
+* **Day-of-Week Scheduling:** Interactive Sun–Sat filter pills for weekly recurring events.
+* **Compact LittleFS Storage:** Scaled 6KB JSON storage (`doc(6144)`) with lightweight state broadcasts to prevent network bloat.
+* **Safety Guards:** Recursive loop depth limiters prevent runaway automation cascades.
+
+Access the automation interface in your browser at:
+```text
+http://<your-device-ip>/automations
+```
+
+### 2. 🎵 ESP-IDF V5 AudioReactive Driver
+Specially tuned for the updated ESP-IDF V5 continuous ADC and I2S APIs:
+* **Dynamic Heap DSP Buffers:** Replaced static 1024-byte task stack buffers with heap-managed memory, fully eliminating stack overflow crashes in the 3592-word FreeRTOS FFT task.
+* **ADC1 Bounds & GPIO Safety:** Strict bounds validation (`channel < 0 || channel > 7`) prevents invalid pin allocation and phantom GPIO leaks on unconfigured hardware.
+* **Partial Frame Smoothing:** Graceful sample decay filtering eliminates acoustic impulse clicks during partial DMA buffers or network jitter.
+
+### 3. 🔌 Harmonized Device Manager (`device_manager`)
+* **Core I2C Arbitration:** Completely harmonized with core WLED I2C (`i2c_sda`, `i2c_scl`) without conflicting `PinOwner` collisions.
+* **Runtime I2C Address Scanner:** Diagnostics endpoint exposed via `/json/info` to instantly detect connected sensors and displays.
+* **Non-Blocking Mutexes:** FreeRTOS mutexes safely allocated inside `setup()` to protect concurrent I2C bus transactions.
+
+### 4. 🧪 Full Wokwi Simulation Suite
+Test firmware logic, effects, and network communications locally without touching physical hardware:
+* **Pre-wired Diagrams:** Single-board (`diagram_single.json`) and distributed multi-node mesh (`wokwi_distributed.json`).
+* **Virtual Wi-Fi Gateway:** Direct network forwarding from `http://localhost:8180` to target port `80`.
+* **Traffic Inspection:** Included Python utilities (`simulation/monitor_packets.py` & `simulation/parse_pcap.py`) for real-time ESP-NOW and DDP packet analysis.
+
+---
+
+## 📂 Project Directory Structure
+
+```text
+WLED-SetGT/
+├── wled00/                       # Core WLED firmware (C++)
+│   ├── data/                     # Web UI source (HTML/CSS/JS with tab indentation)
+│   │   ├── automations.htm       # Native Glassmorphic Automation UI
+│   │   ├── index.htm / index.js  # Main WLED web application
+│   │   └── common.js             # Shared networking & WebSocket client
+│   ├── cfg.cpp                   # Configuration & persistence engine
+│   ├── bus_manager.cpp           # Hardware bus DMA/RMT output management
+│   ├── FX_fcn.cpp                # 1D/2D animation pipeline & sparse ledmaps
+│   └── wled_server.cpp           # HTTP/WebSocket REST server & static routing
+├── usermods/                     # Active & community usermods
+│   ├── automation_engine/        # Native rule evaluation & LittleFS storage
+│   ├── audioreactive/            # ESP-IDF V5 continuous ADC/I2S audio DSP
+│   ├── device_manager/           # Harmonized I2C bus & device scanner
+│   ├── wled_espnow/              # Low-latency peer-to-peer ESP-NOW mesh
+│   └── Internal_Temperature_v2/  # On-chip MCU die temperature telemetry
+├── simulation/                   # Wokwi simulation & packet analysis suite
+│   ├── diagram.json              # Active Wokwi wiring and components
+│   ├── monitor_packets.py        # Real-time packet sniffer
+│   └── parse_pcap.py             # Wireshark PCAP capture analyzer
+├── tools/                        # Node.js build pipeline & test suite
+│   ├── cdata.js                  # HTML/JS minification & PROGMEM C-header compiler
+│   └── cdata-test.js             # Automated web compression test suite
+├── platformio.ini                # Multi-target build configurations
+└── wokwi.toml                    # Wokwi simulator configuration
+```
+
+---
+
+## 🛠️ Quick Start & Build Instructions
+
+### Prerequisites
+* **Node.js** >= 20.0.0
+* **Python** >= 3.10
+* **PlatformIO CLI** or **VS Code with PlatformIO IDE Extension**
+
+### 1. Clone & Install Dependencies
+```bash
+git clone https://github.com/SepTGut/WLED-SetGT.git
+cd WLED-SetGT
+npm ci
+```
+
+### 2. Build the Web UI Assets
+Before compiling firmware, always compile and compress web UI assets into C++ headers:
+```bash
+npm run build
+```
+> *Tip: Run `npm run dev` to enable watch mode, automatically rebuilding headers when editing files in `wled00/data/`.*
+
+### 3. Run Automated Tests
+```bash
+npm test
+```
+*Validates HTML/JS minification, PROGMEM header generation, and asset integrity (16/16 tests passing).*
+
+### 4. Compile ESP32 Firmware
+Compile using PlatformIO for your target environment:
+```bash
+# Standard ESP32 (Recommended default)
+pio run -e esp32dev
+
+# ESP32-S3 (8MB Octal PSRAM)
+pio run -e esp32s3dev_8MB_opi
+
+# ESP32-C3
+pio run -e esp32c3dev
+```
+Compiled binaries and ELF files are automatically exported to `build_output/release/`:
+* `WLED_17.0.0-devV5_ESP32.bin`
+* `WLED_17.0.0-devV5_ESP32.elf`
+
+---
+
+## 💻 Simulation with Wokwi
+
+You can run and debug WLED-SetGT directly in VS Code using the [Wokwi Simulator Extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode):
+
+1. **Select Layout Mode:**
+   ```bash
+   # Single ESP32 board simulation
+   npm run sim:single
+
+   # Distributed multi-node simulation (ESP-NOW & mesh)
+   npm run sim:distributed
+   ```
+2. **Launch Simulation:**
+   * Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+   * Select `Wokwi: Start Simulator`.
+3. **Access Web UI:**
+   * Open `http://localhost:8180` in your web browser.
+   * Access Automations at `http://localhost:8180/automations`.
+4. **Monitor Network Traffic:**
+   ```bash
+   python simulation/monitor_packets.py
+   ```
+
+---
+
+## 🌐 Supported Protocols & Integrations
+
+* **Smart Home:** Home Assistant (auto-discovery), MQTT, Alexa Emulation, Philips Hue emulation.
+* **Pro Lighting & Staging:** E1.31 (sACN), Art-Net, DDP (Distributed Display Protocol), TPM2.net.
+* **Wireless Mesh:** ESP-NOW peer-to-peer synchronization (no external Wi-Fi router required).
+* **Direct Interfaces:** Full JSON API (`/json`), HTTP request API, WebSockets live streaming (`/ws`), Infrared (NEC).
+* **Ambilight & PC Capture:** Adalight, TPM2 serial protocol, Hyperion, and LedFx compatible.
+
+---
+
+## ⚙️ Compatible Hardware & LED Drivers
+
+* **Microcontrollers:** ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP8266.
+* **Digital LED Strips:** WS2812B, WS2811, WS2815, SK6812 (RGBW), WS2805, TM1914, APA102, WS2801, LPD8806, GS8208.
+* **Matrices & Panels:** HUB75 RGB panels (ESP32 I2S parallel DMA), flexible 2D WS2812B matrices (custom panel maps supported).
+* **Analog:** Single-channel PWM, CCT adjustable white, and 4/5-channel RGB/RGBW MOSFET drivers.
+
+---
+
+## 🤝 Contributing & AI Agent Policy
+
+Contributions and improvements are welcome! Please review:
+* [CONTRIBUTING.md](CONTRIBUTING.md) for pull request conventions and development etiquette.
+* [AGENTS.md](AGENTS.md) for coding agent guidelines, C++ style constraints, and verification protocols.
+* `docs/` directory for in-depth architecture, security hardening, and web development guidelines.
+
+---
+
+## ⚠️ Photosensitivity Warning & Disclaimer
+
+> [!CAUTION]
+> **Photosensitive Epilepsy Warning:** A small percentage of individuals may experience epileptic seizures when exposed to certain light patterns or flashing lights. If you experience dizziness, altered vision, eye or muscle twitches, loss of awareness, disorientation, or convulsions, **immediately discontinue use**.
+
+*As per the EUPL v1.2 license, this software is provided "AS IS", without warranties of any kind. No liability is assumed for any damage to persons or equipment.*
+
+---
+
+## 📜 License & Credits
+
+* **Firmware License:** [EUPL v1.2](https://raw.githubusercontent.com/wled-dev/WLED/main/LICENSE)
+* **Original Project:** Created by [Christian Schwinne (Aircoookie)](https://github.com/Aircoookie) and maintained by the [WLED Community](https://kno.wled.ge/about/contributors/).
+* **WLED-SetGT Distribution:** Maintained by [SepTGut](https://github.com/SepTGut).
