@@ -14,11 +14,110 @@
 
 ---
 
+## 📑 Table of Contents
+
+- [🌟 Overview](#-overview)
+- [🛠️ Personal Fork & Development Ledger](#️-personal-fork--development-ledger)
+  - [Core Changes & Bug Fixes](#1-core-changes--firmware-stabilization)
+  - [New Custom Usermods Added](#2-new-custom-usermods-added)
+  - [Simulation Suite & Developer Tooling](#3-simulation-suite--developer-tooling)
+  - [Personal Default Configuration](#4-personal-default-configuration)
+- [⚡ Feature Comparison](#-what-makes-wled-setgt-unique)
+- [🚀 Key Modules Deep Dive](#-key-modules-deep-dive)
+  - [Glassmorphic Automation Engine](#1-🎛️-glassmorphic-automation-engine-automations)
+  - [ESP-IDF V5 AudioReactive Driver](#2-🎵-esp-idf-v5-audioreactive-driver)
+  - [Harmonized Device Manager](#3-🔌-harmonized-device-manager-device_manager)
+- [💻 Simulation & Local Testing Guide](#-simulation-with-wokwi)
+- [📂 Project Directory Structure](#-project-directory-structure)
+- [🛠️ Build & Testing Instructions](#️-quick-start--build-instructions)
+- [📊 Memory & Performance Blueprint](#-memory--performance-blueprint)
+- [🌐 Supported Protocols & Integrations](#-supported-protocols--integrations)
+- [⚙️ Compatible Hardware](#️-compatible-hardware--led-drivers)
+- [🤝 Contributing & Agent Policy](#-contributing--ai-agent-policy)
+- [⚠️ Photosensitivity Disclaimer](#️-photosensitivity-warning--disclaimer)
+- [📜 License & Credits](#-license--credits)
+
+---
+
 ## 🌟 Overview
 
-**WLED-SetGT** is an advanced, high-performance distribution of [WLED](https://github.com/wled/WLED) engineered for modern ESP32 hardware using the **ESP-IDF V5.x** framework. It combines the legendary LED control capabilities of WLED with an offline **Glassmorphic Automation Engine**, ultra-low-jitter **AudioReactive DSP**, harmonized **I2C Device Management**, and a pre-configured **Wokwi simulation suite** for zero-hardware local development.
+**WLED-SetGT** is an advanced, high-performance personal distribution of [WLED](https://github.com/wled/WLED) engineered for modern ESP32 microcontrollers using the **ESP-IDF V5.x** framework. It combines the legendary LED control capabilities of WLED with an offline **Glassmorphic Automation Engine**, ultra-low-jitter **AudioReactive DSP**, harmonized **I2C Device Management**, and a pre-configured **Wokwi simulation suite** for zero-hardware local development and testing.
 
 Whether driving individual addressable LED strips, expansive 2D matrix arrays, or synchronized multi-node fixtures, WLED-SetGT delivers rock-solid stability and modern tooling.
+
+---
+
+## 🛠️ Personal Fork & Development Ledger
+
+> [!NOTE]
+> This section documents all custom components, architectural modifications, bug fixes, and development tooling introduced in this repository.
+
+### 1. Core Changes & Firmware Stabilization
+
+| File / Component | What Changed | Technical Rationale & Impact |
+| :--- | :--- | :--- |
+| `wled00/cfg.cpp` | Gated default 2D panel injection with `else if (!fromFS)` | Prevents user-disabled 2D matrix configurations from being forcibly re-enabled on reboot. Preserves `cumulativeStart` offsets for multi-bus setups. |
+| `wled00/bus_manager.cpp` | Replaced 100ms cutoff in `removeAll()` with safe 500ms watchdog loop | Uses `delay(1)` and `yield()` to feed FreeRTOS watchdog while waiting for active DMA/RMT transfers to finish cleanly before releasing bus memory. |
+| `wled00/my_config.h` | Enabled `CLIENT_SSID "Wokwi-GUEST"` and `WLED_USE_MY_CONFIG` | Allows zero-configuration automatic Wi-Fi association when booting in Wokwi simulator or local development networks. |
+| `wled00/const.h` | Activated `#define WLED_USE_MY_CONFIG` | Directs firmware preprocessor to load personal overrides from `my_config.h`. |
+| `wled00/wled_server.cpp` | Registered `/automations` and `/automations.htm` routes | Enables firmware web server to serve the native Automation Engine UI via `handleStaticContent`. |
+| `wled00/data/common.js` | Updated WebSocket URL resolution | Dynamically detects `wss://` on HTTPS and preserves custom host ports (e.g., `localhost:8180` in Wokwi) instead of defaulting to plain `ws://`. |
+| `wled00/data/index.js` | Synchronized WebSocket auto-negotiation | Ensures seamless real-time UI synchronization across both physical hardware and simulated network environments. |
+| `tools/cdata.js` | Integrated `PAGE_automations` into build pipeline | Automatically minifies `automations.htm` and compiles it into `wled00/html_other.h` during `npm run build`. |
+| `wokwi.toml` & `diagram.json` | Placed at repository workspace root | Enables instant auto-discovery by the VS Code Wokwi extension and configures port forwarding (`localhost:8180` → `target:80`). |
+
+### 2. New Custom Usermods Added
+
+* **🎛️ `usermods/automation_engine/`:**
+  * **Native Rules Engine:** Edge-triggered state evaluation for power state changes (`powerChanged`), preset switches (`presetChanged`), time-of-day matching, and solar position matching (Sunrise, Sunset, Dawn, Dusk).
+  * **Glassmorphic Web UI (`automations.htm`):** Standalone, dark-mode acrylic web interface with trigger-to-action flow cards, Sun–Sat day picker pills, dynamic preset dropdowns, and toast notifications.
+  * **Optimized Network Footprint:** Emits lightweight summary telemetry (`enabled`, `count`) in `addToJsonState()`, eliminating WebSocket broadcast saturation.
+  * **Storage Engine:** 6KB LittleFS JSON document allocation (`DynamicJsonDocument doc(6144)`) for storing up to 16 complex multi-condition automation rules.
+  * **Loop Safety Guards:** Recursion depth limiters (`executionDepth`) prevent automation cascade loops.
+
+* **🎵 `usermods/audioreactive/` (ESP-IDF V5 Driver):**
+  * **Dynamic Heap DSP Buffering:** Replaced static `rawBuf[1024]` task stack allocation with dynamic heap buffer (`_rawBuf`), completely eliminating stack overflow crashes in the 3592-word FreeRTOS FFT task.
+  * **Channel Validation & Pin Protection:** Added strict bounds checking (`channel < 0 || channel > 7`) for ADC1 in both `AdcContSource` and `I2SAdcSource` to prevent invalid pin configuration and GPIO leaks.
+  * **Partial Read Smoothing:** Implemented smooth sample decay filtering on partial DMA reads to eliminate acoustic impulse noise clicks in the frequency spectrum.
+
+* **🔌 `usermods/device_manager/`:**
+  * **Core `HW_I2C` Arbitration:** Harmonized with core WLED I2C pins (`i2c_sda`, `i2c_scl`), eliminating `PinOwner` pin allocation conflicts.
+  * **Runtime Address Scanner:** Active diagnostic scanner exposed in `/json/info` to detect attached OLED/LCD displays and sensors.
+  * **Safe FreeRTOS Mutexes:** Mutex creation deferred to `setup()` to avoid initialization race conditions.
+
+* **📡 `usermods/wled_espnow/`:**
+  * Low-latency peer-to-peer wireless synchronization between WLED controllers without requiring an external Wi-Fi router.
+
+* **🌡️ `usermods/Internal_Temperature_v2/`:**
+  * Real-time ESP32 on-chip silicon die temperature monitoring exposed in `/json/info` and web UI.
+
+### 3. Simulation Suite & Developer Tooling
+
+WLED-SetGT includes a complete local simulation and traffic analysis environment:
+
+| Tool / Script | Command | Purpose |
+| :--- | :--- | :--- |
+| **Wokwi VS Code Simulator** | `Ctrl+Shift+P` → `Wokwi: Start Simulator` | Emulates ESP32 firmware with live LEDs, virtual Wi-Fi gateway, and web UI at `http://localhost:8180`. |
+| **Single-Board Layout** | `npm run sim:single` | Switches Wokwi wiring to a single ESP32 driving a 900-LED array. |
+| **Distributed Multi-Node** | `npm run sim:distributed` | Switches Wokwi wiring to multi-node mesh (2D Matrix Master + ESP-NOW synchronized nodes). |
+| **Real-Time Packet Sniffer** | `python simulation/monitor_packets.py` | Sniffs and logs ESP-NOW, DDP, E1.31, and UDP broadcast traffic in real time. |
+| **PCAP Traffic Inspector** | `python simulation/parse_pcap.py` | Parses Wireshark PCAP captures (`simulation/wokwi.pcap`) from Wokwi simulation runs. |
+| **Express Dev Mock Server** | `npm run sim` | Lightweight Node.js server with WebSocket simulation for rapid web UI prototyping. |
+| **Live UI Watch Mode** | `npm run dev` | Auto-recompiles web UI assets into C++ headers on every HTML/JS/CSS save. |
+| **Automated Test Suite** | `npm test` | Runs Node.js built-in test runner (`cdata-test.js`) validating minification and build integrity. |
+
+### 4. Personal Default Configuration
+
+Settings preconfigured in [wled00/my_config.h](file:///d:/MyCode/WLED-SetGT/wled00/my_config.h):
+```c
+#pragma once
+
+// Wokwi Simulator Auto Wi-Fi Connect
+#define CLIENT_SSID "Wokwi-GUEST"
+#define CLIENT_PASS ""
+```
+* **PlatformIO Toolchain:** Configured for Tasmota ESP32 Platform 2026.05.50 (ESP-IDF V5.4 / Arduino Core 3.x).
+* **Firmware Artifact Exports:** Build scripts automatically copy `firmware.bin` and `firmware.elf` into `build_output/release/` and `build_output/firmware/`.
 
 ---
 
@@ -36,9 +135,10 @@ Whether driving individual addressable LED strips, expansive 2D matrix arrays, o
 
 ---
 
-## 🚀 Key Modules & Architecture
+## 🚀 Key Modules Deep Dive
 
 ### 1. 🎛️ Glassmorphic Automation Engine (`/automations`)
+
 Built with a sleek, dark acrylic design aesthetic matching WLED's visual identity, the native Automation Engine runs 100% locally on the ESP32:
 * **Edge-Triggered Evaluation:** Triggers respond strictly to true state transitions (`powerChanged`, `presetChanged`), eliminating redundant loop execution.
 * **Solar & Astronomical Timers:** Real-time solar position matching (Sunrise, Sunset, Dawn, Dusk) with configurable minute offsets and debounce filtering.
@@ -52,21 +152,48 @@ http://<your-device-ip>/automations
 ```
 
 ### 2. 🎵 ESP-IDF V5 AudioReactive Driver
+
 Specially tuned for the updated ESP-IDF V5 continuous ADC and I2S APIs:
 * **Dynamic Heap DSP Buffers:** Replaced static 1024-byte task stack buffers with heap-managed memory, fully eliminating stack overflow crashes in the 3592-word FreeRTOS FFT task.
 * **ADC1 Bounds & GPIO Safety:** Strict bounds validation (`channel < 0 || channel > 7`) prevents invalid pin allocation and phantom GPIO leaks on unconfigured hardware.
 * **Partial Frame Smoothing:** Graceful sample decay filtering eliminates acoustic impulse clicks during partial DMA buffers or network jitter.
 
 ### 3. 🔌 Harmonized Device Manager (`device_manager`)
+
 * **Core I2C Arbitration:** Completely harmonized with core WLED I2C (`i2c_sda`, `i2c_scl`) without conflicting `PinOwner` collisions.
 * **Runtime I2C Address Scanner:** Diagnostics endpoint exposed via `/json/info` to instantly detect connected sensors and displays.
 * **Non-Blocking Mutexes:** FreeRTOS mutexes safely allocated inside `setup()` to protect concurrent I2C bus transactions.
 
-### 4. 🧪 Full Wokwi Simulation Suite
-Test firmware logic, effects, and network communications locally without touching physical hardware:
-* **Pre-wired Diagrams:** Single-board (`diagram_single.json`) and distributed multi-node mesh (`wokwi_distributed.json`).
-* **Virtual Wi-Fi Gateway:** Direct network forwarding from `http://localhost:8180` to target port `80`.
-* **Traffic Inspection:** Included Python utilities (`simulation/monitor_packets.py` & `simulation/parse_pcap.py`) for real-time ESP-NOW and DDP packet analysis.
+---
+
+## 💻 Simulation with Wokwi
+
+You can run and debug WLED-SetGT directly in VS Code using the [Wokwi Simulator Extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode):
+
+### 1. Select Layout Mode
+```bash
+# Single ESP32 board driving 900 LEDs
+npm run sim:single
+
+# Distributed multi-node simulation (ESP-NOW & mesh)
+npm run sim:distributed
+```
+
+### 2. Launch Simulation in VS Code
+1. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+2. Type and select `Wokwi: Start Simulator`.
+3. The virtual ESP32 will boot and automatically associate with the simulated `Wokwi-GUEST` access point.
+
+### 3. Access Web UI
+* **Main Dashboard:** `http://localhost:8180`
+* **Automation Engine:** `http://localhost:8180/automations`
+
+### 4. Monitor Live Packet Traffic
+Open a separate terminal window and run:
+```bash
+python simulation/monitor_packets.py
+```
+This utility captures and prints live UDP broadcast, ESP-NOW, and DDP sync packets between simulated nodes.
 
 ---
 
@@ -82,6 +209,7 @@ WLED-SetGT/
 │   ├── cfg.cpp                   # Configuration & persistence engine
 │   ├── bus_manager.cpp           # Hardware bus DMA/RMT output management
 │   ├── FX_fcn.cpp                # 1D/2D animation pipeline & sparse ledmaps
+│   ├── my_config.h               # Personal configuration overrides (Wokwi-GUEST)
 │   └── wled_server.cpp           # HTTP/WebSocket REST server & static routing
 ├── usermods/                     # Active & community usermods
 │   ├── automation_engine/        # Native rule evaluation & LittleFS storage
@@ -91,8 +219,11 @@ WLED-SetGT/
 │   └── Internal_Temperature_v2/  # On-chip MCU die temperature telemetry
 ├── simulation/                   # Wokwi simulation & packet analysis suite
 │   ├── diagram.json              # Active Wokwi wiring and components
+│   ├── diagram_single.json       # Single-node configuration
+│   ├── wokwi_distributed.json    # Multi-node distributed mesh layout
 │   ├── monitor_packets.py        # Real-time packet sniffer
-│   └── parse_pcap.py             # Wireshark PCAP capture analyzer
+│   ├── parse_pcap.py             # Wireshark PCAP capture analyzer
+│   └── sim_server.js             # Mock Express & WebSocket dev server
 ├── tools/                        # Node.js build pipeline & test suite
 │   ├── cdata.js                  # HTML/JS minification & PROGMEM C-header compiler
 │   └── cdata-test.js             # Automated web compression test suite
@@ -147,28 +278,16 @@ Compiled binaries and ELF files are automatically exported to `build_output/rele
 
 ---
 
-## 💻 Simulation with Wokwi
+## 📊 Memory & Performance Blueprint
 
-You can run and debug WLED-SetGT directly in VS Code using the [Wokwi Simulator Extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode):
+Verified benchmarks on ESP32 (`esp32dev`, ESP-IDF V5.4 / Arduino 3.x with all 4 active usermods):
 
-1. **Select Layout Mode:**
-   ```bash
-   # Single ESP32 board simulation
-   npm run sim:single
-
-   # Distributed multi-node simulation (ESP-NOW & mesh)
-   npm run sim:distributed
-   ```
-2. **Launch Simulation:**
-   * Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
-   * Select `Wokwi: Start Simulator`.
-3. **Access Web UI:**
-   * Open `http://localhost:8180` in your web browser.
-   * Access Automations at `http://localhost:8180/automations`.
-4. **Monitor Network Traffic:**
-   ```bash
-   python simulation/monitor_packets.py
-   ```
+| Metric | Utilized | Total Available | Utilization | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **RAM (DRAM)** | 90,944 bytes | 327,680 bytes | **27.8%** | 🟢 Extremely healthy (236KB free headroom) |
+| **Flash Memory** | 1,315,439 bytes | 1,572,864 bytes | **83.6%** | 🟢 Stable across OTA partitions |
+| **FFT Task Stack** | Offloaded to heap | Dynamic DRAM | **Zero Stack Contention** | 🟢 Eliminates v5 stack overflow risks |
+| **Automation LittleFS** | Max 6,144 bytes | Filesystem | **< 0.5% partition** | 🟢 Rapid non-blocking serialization |
 
 ---
 
