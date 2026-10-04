@@ -56,9 +56,11 @@ class UsermodAutomationEngine : public Usermod {
 private:
   bool enabled = true;
   bool initDone = false;
-  bool isExecuting = false; // Recursion guard during state changes
+  uint8_t executionDepth = 0; // Recursion depth guard
   unsigned long lastLoopTick = 0;
   uint8_t lastEvaluatedMinute = 255;
+  bool lastPowerState = false;
+  uint8_t lastPresetId = 0;
 
   AutomationRule rules[AUTOMATION_ENGINE_MAX_RULES];
   uint8_t ruleCount = 0;
@@ -76,11 +78,68 @@ private:
     dest[destSize - 1] = '\0';
   }
 
-  // Helper: execute assigned action for a matched rule
-  void executeAction(const AutomationRule& rule) {
-    if (!rule.enabled || isExecuting) return;
+  // Populate rules array from a JsonArray
+  void parseRulesJson(JsonArray rulesArray) {
+    ruleCount = 0;
+    for (JsonObject r : rulesArray) {
+      if (ruleCount >= AUTOMATION_ENGINE_MAX_RULES) break;
 
-    isExecuting = true;
+      AutomationRule& rule = rules[ruleCount];
+      rule.id = r["id"] | (ruleCount + 1);
+      rule.enabled = r["enabled"] | true;
+      safeCopy(rule.name, r["name"] | "", sizeof(rule.name));
+      rule.triggerType = (TriggerType)(r["trigType"] | 0);
+      rule.timeHour = r["timeH"] | 0;
+      rule.timeMinute = r["timeM"] | 0;
+      rule.daysOfWeek = r["days"] | 0x7F;
+      rule.solarType = r["solarType"] | 0;
+      rule.solarOffset = r["solarOffset"] | 0;
+      rule.stateType = r["stateType"] | 0;
+      rule.stateVal = r["stateVal"] | 0;
+      safeCopy(rule.mqttTopic, r["mqttTopic"] | "", sizeof(rule.mqttTopic));
+      safeCopy(rule.mqttPayload, r["mqttPayload"] | "", sizeof(rule.mqttPayload));
+      rule.actionType = (ActionType)(r["actType"] | 0);
+      rule.presetId = r["presetId"] | 1;
+      rule.powerState = r["powerState"] | 2;
+      safeCopy(rule.apiCommand, r["apiCommand"] | "", sizeof(rule.apiCommand));
+
+      ruleCount++;
+    }
+  }
+
+  // Serialize current rules into a JsonArray
+  void serializeRulesJson(JsonArray rulesArray) {
+    for (uint8_t i = 0; i < ruleCount; i++) {
+      JsonObject r = rulesArray.createNestedObject();
+      r["id"] = rules[i].id;
+      r["enabled"] = rules[i].enabled;
+      r["name"] = rules[i].name;
+      r["trigType"] = (uint8_t)rules[i].triggerType;
+      r["timeH"] = rules[i].timeHour;
+      r["timeM"] = rules[i].timeMinute;
+      r["days"] = rules[i].daysOfWeek;
+      r["solarType"] = rules[i].solarType;
+      r["solarOffset"] = rules[i].solarOffset;
+      r["stateType"] = rules[i].stateType;
+      r["stateVal"] = rules[i].stateVal;
+      r["mqttTopic"] = rules[i].mqttTopic;
+      r["mqttPayload"] = rules[i].mqttPayload;
+      r["actType"] = (uint8_t)rules[i].actionType;
+      r["presetId"] = rules[i].presetId;
+      r["powerState"] = rules[i].powerState;
+      r["apiCommand"] = rules[i].apiCommand;
+    }
+  }
+
+  // Helper: execute assigned action for a matched rule with recursion guard
+  void executeAction(AutomationRule& rule) {
+    if (!rule.enabled || executionDepth >= 2) return;
+
+    // Prevent immediate re-trigger within 1.5s
+    if (millis() - rule.lastTriggeredTime < 1500) return;
+
+    executionDepth++;
+    rule.lastTriggeredTime = millis();
     DEBUG_PRINTF("Automation Engine: Rule #%d ('%s') triggered!\n", rule.id, rule.name);
 
     switch (rule.actionType) {
@@ -111,18 +170,20 @@ private:
             JsonObject obj = doc.as<JsonObject>();
             deserializeState(obj, CALL_MODE_DIRECT_CHANGE);
           } else {
-            DEBUG_PRINTLN("Automation Engine: Failed to parse API command JSON");
+            DEBUG_PRINTLN(F("Automation Engine: Failed to parse API command JSON"));
           }
         }
         break;
     }
 
-    isExecuting = false;
+    executionDepth--;
   }
 
 public:
   void setup() override {
     loadRules();
+    lastPowerState = (bri > 0);
+    lastPresetId = currentPreset;
     initDone = true;
   }
 
@@ -152,13 +213,12 @@ public:
               executeAction(rules[i]);
             }
           } else if (rules[i].triggerType == TRIG_SUNRISE_SUNSET) {
-            // Check solar calculation epoch match
             time_t solarTime = (rules[i].solarType == 0) ? sunrise : sunset;
             if (solarTime > 0) {
               time_t targetSolarEpoch = solarTime + (rules[i].solarOffset * 60);
-              int32_t diffSec = (int32_t)(local - targetSolarEpoch);
-              if (abs(diffSec) < 30 && (millis() - rules[i].lastTriggeredTime > 120000)) {
-                rules[i].lastTriggeredTime = millis();
+              uint8_t solarHour = hour(targetSolarEpoch);
+              uint8_t solarMin = minute(targetSolarEpoch);
+              if (currentHour == solarHour && currentMinute == solarMin && (millis() - rules[i].lastTriggeredTime > 65000)) {
                 executeAction(rules[i]);
               }
             }
@@ -169,22 +229,25 @@ public:
   }
 
   void onStateChange(uint8_t mode) override {
-    if (!enabled || !initDone || isExecuting) return;
+    if (!enabled || !initDone || executionDepth > 0) return;
+
+    bool currentPowerState = (bri > 0);
+    bool powerChanged = (currentPowerState != lastPowerState);
+    bool presetChanged = (currentPreset != lastPresetId);
+    lastPowerState = currentPowerState;
+    lastPresetId = currentPreset;
 
     for (uint8_t i = 0; i < ruleCount; i++) {
       if (!rules[i].enabled) continue;
 
       if (rules[i].triggerType == TRIG_STATE_CHANGE) {
-        if (rules[i].stateType == 0) { // Power state trigger
-          bool currentPowerState = (bri > 0);
+        if (rules[i].stateType == 0 && powerChanged) { // Power state trigger on transition
           bool targetPower = (rules[i].stateVal != 0);
-          if (currentPowerState == targetPower && (millis() - rules[i].lastTriggeredTime > 1000)) {
-            rules[i].lastTriggeredTime = millis();
+          if (currentPowerState == targetPower && (millis() - rules[i].lastTriggeredTime > 1500)) {
             executeAction(rules[i]);
           }
-        } else if (rules[i].stateType == 1) { // Preset change trigger
-          if (currentPreset == rules[i].stateVal && rules[i].stateVal > 0 && (millis() - rules[i].lastTriggeredTime > 1000)) {
-            rules[i].lastTriggeredTime = millis();
+        } else if (rules[i].stateType == 1 && presetChanged) { // Preset change trigger on transition
+          if (currentPreset == rules[i].stateVal && rules[i].stateVal > 0 && (millis() - rules[i].lastTriggeredTime > 1500)) {
             executeAction(rules[i]);
           }
         }
@@ -193,7 +256,7 @@ public:
   }
 
   bool onMqttMessage(char* topic, char* payload) override {
-    if (!enabled || !initDone || !topic || !payload || isExecuting) return false;
+    if (!enabled || !initDone || !topic || !payload || executionDepth > 0) return false;
 
     for (uint8_t i = 0; i < ruleCount; i++) {
       if (!rules[i].enabled || rules[i].triggerType != TRIG_MQTT) continue;
@@ -208,33 +271,11 @@ public:
     return false;
   }
 
-  // API State handler - allows reading and modifying automation rules via JSON API
+  // API State handler - emit only lightweight summary in /json/state to keep responses and WebSockets fast
   void addToJsonState(JsonObject& root) override {
     JsonObject top = root.createNestedObject(FPSTR(_name));
     top["enabled"] = enabled;
     top["count"] = ruleCount;
-
-    JsonArray rulesArray = top.createNestedArray("rules");
-    for (uint8_t i = 0; i < ruleCount; i++) {
-      JsonObject r = rulesArray.createNestedObject();
-      r["id"] = rules[i].id;
-      r["enabled"] = rules[i].enabled;
-      r["name"] = rules[i].name;
-      r["trigType"] = (uint8_t)rules[i].triggerType;
-      r["timeH"] = rules[i].timeHour;
-      r["timeM"] = rules[i].timeMinute;
-      r["days"] = rules[i].daysOfWeek;
-      r["solarType"] = rules[i].solarType;
-      r["solarOffset"] = rules[i].solarOffset;
-      r["stateType"] = rules[i].stateType;
-      r["stateVal"] = rules[i].stateVal;
-      r["mqttTopic"] = rules[i].mqttTopic;
-      r["mqttPayload"] = rules[i].mqttPayload;
-      r["actType"] = (uint8_t)rules[i].actionType;
-      r["presetId"] = rules[i].presetId;
-      r["powerState"] = rules[i].powerState;
-      r["apiCommand"] = rules[i].apiCommand;
-    }
   }
 
   void readFromJsonState(JsonObject& root) override {
@@ -245,33 +286,13 @@ public:
       enabled = top["enabled"] | enabled;
     }
 
+    if (top.containsKey("reload")) {
+      loadRules();
+    }
+
     if (top.containsKey("rules")) {
       JsonArray rulesArray = top["rules"].as<JsonArray>();
-      ruleCount = 0;
-      for (JsonObject r : rulesArray) {
-        if (ruleCount >= AUTOMATION_ENGINE_MAX_RULES) break;
-
-        AutomationRule& rule = rules[ruleCount];
-        rule.id = r["id"] | (ruleCount + 1);
-        rule.enabled = r["enabled"] | true;
-        safeCopy(rule.name, r["name"] | "", sizeof(rule.name));
-        rule.triggerType = (TriggerType)(r["trigType"] | 0);
-        rule.timeHour = r["timeH"] | 0;
-        rule.timeMinute = r["timeM"] | 0;
-        rule.daysOfWeek = r["days"] | 0x7F;
-        rule.solarType = r["solarType"] | 0;
-        rule.solarOffset = r["solarOffset"] | 0;
-        rule.stateType = r["stateType"] | 0;
-        rule.stateVal = r["stateVal"] | 0;
-        safeCopy(rule.mqttTopic, r["mqttTopic"] | "", sizeof(rule.mqttTopic));
-        safeCopy(rule.mqttPayload, r["mqttPayload"] | "", sizeof(rule.mqttPayload));
-        rule.actionType = (ActionType)(r["actType"] | 0);
-        rule.presetId = r["presetId"] | 1;
-        rule.powerState = r["powerState"] | 2;
-        safeCopy(rule.apiCommand, r["apiCommand"] | "", sizeof(rule.apiCommand));
-
-        ruleCount++;
-      }
+      parseRulesJson(rulesArray);
       saveRules();
     }
   }
@@ -288,7 +309,7 @@ public:
     return true;
   }
 
-  // Load rules from flash storage (/automations.json)
+  // Load rules from flash storage (/automations.json) with adequate capacity
   void loadRules() {
     if (!WLED_FS.exists(AUTOMATION_ENGINE_FILE_PATH)) {
       ruleCount = 0;
@@ -298,41 +319,21 @@ public:
     File f = WLED_FS.open(AUTOMATION_ENGINE_FILE_PATH, "r");
     if (!f) return;
 
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(6144);
     DeserializationError err = deserializeJson(doc, f);
     f.close();
 
     if (err) {
-      DEBUG_PRINTLN("Automation Engine: Failed to parse /automations.json");
+      DEBUG_PRINTLN(F("Automation Engine: Failed to parse /automations.json"));
       return;
     }
 
-    ruleCount = 0;
-    JsonArray rulesArray = doc["rules"].as<JsonArray>();
-    for (JsonObject r : rulesArray) {
-      if (ruleCount >= AUTOMATION_ENGINE_MAX_RULES) break;
-
-      AutomationRule& rule = rules[ruleCount];
-      rule.id = r["id"] | (ruleCount + 1);
-      rule.enabled = r["enabled"] | true;
-      safeCopy(rule.name, r["name"] | "", sizeof(rule.name));
-      rule.triggerType = (TriggerType)(r["trigType"] | 0);
-      rule.timeHour = r["timeH"] | 0;
-      rule.timeMinute = r["timeM"] | 0;
-      rule.daysOfWeek = r["days"] | 0x7F;
-      rule.solarType = r["solarType"] | 0;
-      rule.solarOffset = r["solarOffset"] | 0;
-      rule.stateType = r["stateType"] | 0;
-      rule.stateVal = r["stateVal"] | 0;
-      safeCopy(rule.mqttTopic, r["mqttTopic"] | "", sizeof(rule.mqttTopic));
-      safeCopy(rule.mqttPayload, r["mqttPayload"] | "", sizeof(rule.mqttPayload));
-      rule.actionType = (ActionType)(r["actType"] | 0);
-      rule.presetId = r["presetId"] | 1;
-      rule.powerState = r["powerState"] | 2;
-      safeCopy(rule.apiCommand, r["apiCommand"] | "", sizeof(rule.apiCommand));
-
-      ruleCount++;
+    if (doc.containsKey("enabled")) {
+      enabled = doc["enabled"] | enabled;
     }
+
+    JsonArray rulesArray = doc["rules"].as<JsonArray>();
+    parseRulesJson(rulesArray);
   }
 
   // Save rules to flash storage (/automations.json)
@@ -340,30 +341,10 @@ public:
     File f = WLED_FS.open(AUTOMATION_ENGINE_FILE_PATH, "w");
     if (!f) return;
 
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(6144);
     doc["enabled"] = enabled;
     JsonArray rulesArray = doc.createNestedArray("rules");
-
-    for (uint8_t i = 0; i < ruleCount; i++) {
-      JsonObject r = rulesArray.createNestedObject();
-      r["id"] = rules[i].id;
-      r["enabled"] = rules[i].enabled;
-      r["name"] = rules[i].name;
-      r["trigType"] = (uint8_t)rules[i].triggerType;
-      r["timeH"] = rules[i].timeHour;
-      r["timeM"] = rules[i].timeMinute;
-      r["days"] = rules[i].daysOfWeek;
-      r["solarType"] = rules[i].solarType;
-      r["solarOffset"] = rules[i].solarOffset;
-      r["stateType"] = rules[i].stateType;
-      r["stateVal"] = rules[i].stateVal;
-      r["mqttTopic"] = rules[i].mqttTopic;
-      r["mqttPayload"] = rules[i].mqttPayload;
-      r["actType"] = (uint8_t)rules[i].actionType;
-      r["presetId"] = rules[i].presetId;
-      r["powerState"] = rules[i].powerState;
-      r["apiCommand"] = rules[i].apiCommand;
-    }
+    serializeRulesJson(rulesArray);
 
     serializeJson(doc, f);
     f.close();

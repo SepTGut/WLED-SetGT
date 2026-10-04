@@ -409,6 +409,12 @@ writeChunks(
   "wled00/data",
   [
     {
+      file: "automations.htm",
+      name: "PAGE_automations",
+      method: "gzip",
+      filter: "html-minify",
+    },
+    {
       file: "usermod.htm",
       name: "PAGE_usermod",
       method: "gzip",

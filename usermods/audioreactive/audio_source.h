@@ -618,8 +618,9 @@ class I2SAdcSource : public I2SSource {
 
       // Determine Analog channel. Only Channels on ADC1 are supported
       int8_t channel = digitalPinToAnalogChannel(_audioPin);
-      if (channel > 9) {
+      if (channel < 0 || channel > 7) {
         DEBUGSR_PRINTF("Incompatible GPIO used for analog audio input: %d\n", _audioPin);
+        PinManager::deallocatePin(_audioPin, PinOwner::UM_Audioreactive);
         return;
       } else {
         adc_gpio_init(ADC_UNIT_1, adc_channel_t(channel));  // ToDO: this functions was removed in esp-idf v5 - we need a replacement
@@ -816,12 +817,26 @@ class AdcContSource : public AudioSource {
 
       // Determine ADC1 channel from GPIO number. Only ADC1 channels 0-7 are usable.
       int8_t channel = digitalPinToAnalogChannel(_audioPin);
-      if (channel > 9) {
+      if (channel < 0 || channel > 7) {
         DEBUGSR_PRINTF("Incompatible GPIO used for analog audio input: %d\n", _audioPin);
         PinManager::deallocatePin(_audioPin, PinOwner::UM_Audioreactive);
         return;
       }
       _myADCchannel = channel;
+
+      // --- Allocate sample buffer on heap (off the FFT task stack) ---
+      uint32_t neededBytes = _blockSize * SOC_ADC_DIGI_RESULT_BYTES * 8; // covers batch reads up to 512 samples
+      if (neededBytes < 1024) neededBytes = 1024;
+      if (!_rawBuf || _rawBufCapacity < neededBytes) {
+        if (_rawBuf) d_free(_rawBuf);
+        _rawBuf = (uint8_t*) d_malloc(neededBytes);
+        _rawBufCapacity = (_rawBuf) ? neededBytes : 0;
+      }
+      if (!_rawBuf) {
+        DEBUGSR_PRINTLN(F("AdcContSource: failed to allocate rawBuf on heap"));
+        PinManager::deallocatePin(_audioPin, PinOwner::UM_Audioreactive);
+        return;
+      }
 
       // --- Allocate ADC continuous driver handle ---
       adc_continuous_handle_cfg_t handle_cfg = {
@@ -878,19 +893,24 @@ class AdcContSource : public AudioSource {
 
     // Read num_samples from the ADC continuous driver and convert to FFT sample format.
     void getSamples(FFTsampleType *buffer, uint16_t num_samples) override {
-      if (!_initialized || !_adcHandle) return;
+      if (!_initialized || !_adcHandle || !_rawBuf) return;
 
-      // Temporary buffer for raw ADC results
       const uint32_t frameBytes = num_samples * SOC_ADC_DIGI_RESULT_BYTES;
-      uint8_t rawBuf[1024];  // stack buffer — 1024 bytes covers up to 512 samples (2 bytes each)
-      uint32_t bytesToRead = (frameBytes <= sizeof(rawBuf)) ? frameBytes : sizeof(rawBuf);
+      uint32_t bytesToRead = (frameBytes <= _rawBufCapacity) ? frameBytes : _rawBufCapacity;
       uint32_t bytesRead = 0;
 
-      esp_err_t err = adc_continuous_read(_adcHandle, rawBuf, bytesToRead, &bytesRead, pdMS_TO_TICKS(50));
+      esp_err_t err = adc_continuous_read(_adcHandle, _rawBuf, bytesToRead, &bytesRead, pdMS_TO_TICKS(50));
       if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
         DEBUGSR_PRINTF("AdcContSource: adc_continuous_read error: 0x%x\n", err);
-        // Fill with silence on error
-        memset(buffer, 0, num_samples * sizeof(FFTsampleType));
+        // Smoothly decay to silence on error rather than abrupt zero-filling
+        for (uint16_t i = 0; i < num_samples; i++) {
+          _lastSample = (_lastSample * 3) / 4;
+          #ifdef I2S_USE_16BIT_SAMPLES
+          buffer[i] = static_cast<FFTsampleType>(_lastSample);
+          #else
+          buffer[i] = static_cast<FFTsampleType>(_lastSample) * _sampleScale;
+          #endif
+        }
         return;
       }
 
@@ -899,7 +919,7 @@ class AdcContSource : public AudioSource {
 
       // Decode ADC_DIGI_OUTPUT_FORMAT_TYPE1 results and apply post-processing
       for (uint32_t i = 0; i < samplesToCopy; i++) {
-        adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t *>(&rawBuf[i * SOC_ADC_DIGI_RESULT_BYTES]);
+        adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t *>(&_rawBuf[i * SOC_ADC_DIGI_RESULT_BYTES]);
         uint16_t rawVal = p->type1.data;      // 12-bit unsigned ADC value (0..4095)
         uint8_t  ch     = p->type1.channel;   // ADC channel that produced this sample
 
@@ -908,7 +928,7 @@ class AdcContSource : public AudioSource {
           // Rogue sample from wrong channel — substitute with last good sample
           signedSample = _lastSample;
         } else {
-          signedSample = static_cast<int32_t>(rawVal) - 2048;  // center at 0 (unsigned 12-bit → signed)
+          signedSample = static_cast<int32_t>(rawVal) - 2048;  // center at 0 (unsigned 12-bit -> signed)
         }
 
         // Mimic old I2SAdcSource: scale 12-bit down to ~10-bit, then apply 2-tap FIR low-pass filter
@@ -916,7 +936,7 @@ class AdcContSource : public AudioSource {
         int32_t filtered = (3 * signedSample + _lastSample) / 4;
         _lastSample = filtered;
 
-        // Scale to match I2S 32-bit sample range that the FFT pipeline expects
+        // Scale to match I2S sample range that the FFT pipeline expects
         #ifdef I2S_USE_16BIT_SAMPLES
         buffer[i] = static_cast<FFTsampleType>(filtered);
         #else
@@ -924,9 +944,14 @@ class AdcContSource : public AudioSource {
         #endif
       }
 
-      // Zero-fill any remaining samples if we got fewer than requested
+      // Smoothly fill any remaining samples with filtered decay rather than hard step zeroes
       for (uint32_t i = samplesToCopy; i < num_samples; i++) {
-        buffer[i] = 0;
+        _lastSample = (_lastSample * 3) / 4;
+        #ifdef I2S_USE_16BIT_SAMPLES
+        buffer[i] = static_cast<FFTsampleType>(_lastSample);
+        #else
+        buffer[i] = static_cast<FFTsampleType>(_lastSample) * _sampleScale;
+        #endif
       }
     }
 
@@ -940,6 +965,11 @@ class AdcContSource : public AudioSource {
         PinManager::deallocatePin(_audioPin, PinOwner::UM_Audioreactive);
         _audioPin = -1;
       }
+      if (_rawBuf) {
+        d_free(_rawBuf);
+        _rawBuf = nullptr;
+        _rawBufCapacity = 0;
+      }
       _initialized = false;
       _myADCchannel = 0x0F;
     }
@@ -949,6 +979,8 @@ class AdcContSource : public AudioSource {
     int8_t _audioPin;
     uint8_t _myADCchannel;          // ADC1 channel number, 0x0F = undefined
     int32_t _lastSample = 0;        // last good sample for low-pass filter
+    uint8_t *_rawBuf = nullptr;     // heap buffer for ADC sample reads
+    uint32_t _rawBufCapacity = 0;   // capacity in bytes
 };
 #endif  // CONFIG_IDF_TARGET_ESP32 && ESP_IDF_VERSION_MAJOR >= 5
 // AI: end

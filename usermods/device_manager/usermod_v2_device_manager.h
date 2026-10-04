@@ -16,22 +16,10 @@ private:
   bool enabled = true;
   bool initDone = false;
 
-  // I2C Config
-  int8_t i2cSdaPin = -1;
-  int8_t i2cSclPin = -1;
-  uint32_t i2cClockSpeed = 100000; // 100 kHz default
-  bool i2cAllocated = false;
-
-  // SPI Config
-  int8_t spiMosiPin = -1;
-  int8_t spiMisoPin = -1;
-  int8_t spiSckPin = -1;
-  uint32_t spiClockSpeed = 10000000; // 10 MHz default
-  bool spiAllocated = false;
-
   // Detected I2C Devices
   uint8_t i2cDevices[16];
   uint8_t i2cDeviceCount = 0;
+  bool scanCompleted = false;
 
   // MutexHandles for ESP32
 #ifdef ARDUINO_ARCH_ESP32
@@ -42,17 +30,12 @@ private:
   static const char _name[];
 
 public:
-  UsermodDeviceManager() {
-#ifdef ARDUINO_ARCH_ESP32
-    i2cMutex = xSemaphoreCreateMutex();
-    spiMutex = xSemaphoreCreateMutex();
-#endif
-  }
+  UsermodDeviceManager() = default;
 
   ~UsermodDeviceManager() override {
 #ifdef ARDUINO_ARCH_ESP32
-    if (i2cMutex) vSemaphoreDelete(i2cMutex);
-    if (spiMutex) vSemaphoreDelete(spiMutex);
+    if (i2cMutex) { vSemaphoreDelete(i2cMutex); i2cMutex = nullptr; }
+    if (spiMutex) { vSemaphoreDelete(spiMutex); spiMutex = nullptr; }
 #endif
   }
 
@@ -94,78 +77,17 @@ public:
 #endif
   }
 
-  // Initialize I2C Bus safely with PinManager reservation
-  bool initI2C(int8_t sda, int8_t scl, uint32_t clock = 100000) {
-    if (i2cAllocated) return true;
-
-    if (sda < 0 || scl < 0) {
-#ifdef ESP8266
-      sda = 4; scl = 5;
-#elif defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
-      sda = 8; scl = 9;
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-      sda = 8; scl = 9;
-#else // classic ESP32
-      sda = 21; scl = 22;
-#endif
-    }
-
-    PinManagerPinType pins[2] = { {sda, true}, {scl, true} };
-    if (!PinManager::allocateMultiplePins(pins, 2, PinOwner::UM_DeviceManager)) {
-      DEBUG_PRINTLN(F("DeviceManager: Failed to allocate I2C SDA/SCL pins!"));
-      return false;
-    }
-
-    i2cSdaPin = sda;
-    i2cSclPin = scl;
-    i2cClockSpeed = clock;
-
-    Wire.begin(i2cSdaPin, i2cSclPin);
-    Wire.setClock(i2cClockSpeed);
-    i2cAllocated = true;
-    DEBUG_PRINTF("DeviceManager: I2C initialized on SDA=%d, SCL=%d at %d Hz\n", i2cSdaPin, i2cSclPin, i2cClockSpeed);
-    return true;
-  }
-
-  // Initialize SPI Bus safely with PinManager reservation
-  bool initSPI(int8_t mosi, int8_t miso, int8_t sck) {
-    if (spiAllocated) return true;
-
-    if (mosi < 0 || sck < 0) {
-#ifdef ESP8266
-      mosi = 13; miso = 12; sck = 14;
-#else
-      mosi = 23; miso = 19; sck = 18;
-#endif
-    }
-
-    PinManagerPinType pins[3] = { {mosi, true}, {miso, false}, {sck, true} };
-    if (!PinManager::allocateMultiplePins(pins, 3, PinOwner::UM_DeviceManager)) {
-      DEBUG_PRINTLN(F("DeviceManager: Failed to allocate SPI pins!"));
-      return false;
-    }
-
-    spiMosiPin = mosi;
-    spiMisoPin = miso;
-    spiSckPin = sck;
-
-#ifdef ARDUINO_ARCH_ESP32
-    SPI.begin(spiSckPin, spiMisoPin, spiMosiPin, -1);
-#else
-    SPI.begin();
-#endif
-    spiAllocated = true;
-    DEBUG_PRINTF("DeviceManager: SPI initialized on MOSI=%d, MISO=%d, SCK=%d\n", spiMosiPin, spiMisoPin, spiSckPin);
-    return true;
-  }
-
   // Scan I2C bus for active device addresses (0x08 to 0x77)
   uint8_t scanI2CBus() {
-    if (!i2cAllocated && !initI2C(i2cSdaPin, i2cSclPin, i2cClockSpeed)) return 0;
+    if (i2c_sda < 0 || i2c_scl < 0) {
+      DEBUG_PRINTLN(F("DeviceManager: I2C pins not configured in WLED settings."));
+      return 0;
+    }
 
     i2cDeviceCount = 0;
     if (!lockI2C(200)) return 0;
 
+    DEBUG_PRINTLN(F("DeviceManager: Starting I2C bus scan..."));
     for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
       Wire.beginTransmission(addr);
       uint8_t error = Wire.endTransmission();
@@ -178,12 +100,22 @@ public:
     }
 
     unlockI2C();
+    scanCompleted = true;
     return i2cDeviceCount;
   }
 
   void setup() override {
-    initI2C(i2cSdaPin, i2cSclPin, i2cClockSpeed);
-    scanI2CBus();
+#ifdef ARDUINO_ARCH_ESP32
+    if (!i2cMutex) i2cMutex = xSemaphoreCreateMutex();
+    if (!spiMutex) spiMutex = xSemaphoreCreateMutex();
+#endif
+
+    if (!enabled) return;
+
+    // Scan I2C bus only if global I2C is configured
+    if (i2c_sda >= 0 && i2c_scl >= 0) {
+      scanI2CBus();
+    }
     initDone = true;
   }
 
@@ -192,11 +124,15 @@ public:
   }
 
   void addToJsonInfo(JsonObject& root) override {
+    if (!enabled) return;
+
     JsonObject user = root["u"];
     if (user.isNull()) user = root.createNestedObject("u");
 
     JsonArray devArr = user.createNestedArray(F("I2C Devices"));
-    if (i2cDeviceCount == 0) {
+    if (i2c_sda < 0 || i2c_scl < 0) {
+      devArr.add(F("I2C not configured"));
+    } else if (!scanCompleted || i2cDeviceCount == 0) {
       devArr.add(F("None detected"));
     } else {
       for (uint8_t i = 0; i < i2cDeviceCount; i++) {
@@ -210,12 +146,6 @@ public:
   void addToConfig(JsonObject& root) override {
     JsonObject top = root.createNestedObject(FPSTR(_name));
     top["enabled"] = enabled;
-    top["sda"] = i2cSdaPin;
-    top["scl"] = i2cSclPin;
-    top["i2cClock"] = i2cClockSpeed;
-    top["mosi"] = spiMosiPin;
-    top["miso"] = spiMisoPin;
-    top["sck"] = spiSckPin;
   }
 
   bool readFromConfig(JsonObject& root) override {
@@ -223,12 +153,6 @@ public:
     if (top.isNull()) return false;
 
     enabled = top["enabled"] | enabled;
-    i2cSdaPin = top["sda"] | i2cSdaPin;
-    i2cSclPin = top["scl"] | i2cSclPin;
-    i2cClockSpeed = top["i2cClock"] | i2cClockSpeed;
-    spiMosiPin = top["mosi"] | spiMosiPin;
-    spiMisoPin = top["miso"] | spiMisoPin;
-    spiSckPin = top["sck"] | spiSckPin;
     return true;
   }
 

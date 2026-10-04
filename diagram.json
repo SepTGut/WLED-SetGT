@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "author": "Antigravity AI",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-led-strip",
+      "id": "strip1",
+      "top": 59.7,
+      "left": 163.2,
+      "attrs": { "pixels": "75", "pixelShape": "square" }
+    },
+    {
+      "type": "wokwi-led-strip",
+      "id": "strip2",
+      "top": 98.1,
+      "left": 163.2,
+      "attrs": { "pixels": "75", "pixelShape": "square" }
+    },
+    {
+      "type": "wokwi-led-strip",
+      "id": "strip3",
+      "top": 146.1,
+      "left": 163.2,
+      "attrs": { "pixels": "75", "pixelShape": "square" }
+    },
+    {
+      "type": "wokwi-led-strip",
+      "id": "strip4",
+      "top": 184.5,
+      "left": 163.2,
+      "attrs": { "pixels": "75", "pixelShape": "square" }
+    },
+    {
+      "type": "wokwi-led-matrix",
+      "id": "matrix1",
+      "top": -311,
+      "left": 165,
+      "attrs": { "rows": "15", "cols": "20" }
+    },
+    {
+      "type": "wokwi-led-matrix",
+      "id": "matrix2",
+      "top": -426,
+      "left": 635.3,
+      "attrs": { "rows": "20", "cols": "15" }
+    },
+    { "type": "wokwi-junction", "id": "j1", "top": 43.2, "left": 129.6, "attrs": {} },
+    { "type": "wokwi-junction", "id": "j2", "top": 81.6, "left": 129.6, "attrs": {} },
+    { "type": "wokwi-junction", "id": "j3", "top": 52.8, "left": 120, "attrs": {} },
+    { "type": "wokwi-junction", "id": "j4", "top": 100.8, "left": 120, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "strip1:DOUT", "strip2:DIN", "green", [ "h6.2", "v18.8", "h-1756.8", "v19.2" ] ],
+    [ "strip2:DOUT", "strip3:DIN", "green", [ "h6.2", "v24", "h-1756.8", "v24" ] ],
+    [ "strip3:DOUT", "strip4:DIN", "green", [ "h6.2", "v18.8", "h-1756.8", "v19.2" ] ],
+    [ "esp:GND.2", "j1:J", "black", [ "h14.44", "v19.2" ] ],
+    [ "j1:J", "matrix2:VSS", "black", [ "v9.6", "h345.6", "v0", "h9.6" ] ],
+    [ "j2:J", "strip1:VSS", "black", [ "v0" ] ],
+    [ "j2:J", "j1:J", "black", [ "v0" ] ],
+    [ "j2:J", "strip2:VSS", "black", [ "v0" ] ],
+    [ "j2:J", "strip3:VSS", "black", [ "v86.4" ] ],
+    [ "j2:J", "strip4:VSS", "black", [ "v0" ] ],
+    [ "esp:5V", "j3:J", "red", [ "h-4.61", "v-182.4", "h124.8" ] ],
+    [ "j3:J", "matrix2:VDD", "red", [ "v0", "h297.6" ] ],
+    [ "j4:J", "j3:J", "red", [ "v-48" ] ],
+    [ "j4:J", "strip1:VDD", "red", [ "v-38.4" ] ],
+    [ "j4:J", "strip2:VDD", "red", [ "v0" ] ],
+    [ "j4:J", "strip3:VDD", "red", [ "v0" ] ],
+    [ "j4:J", "strip4:VDD", "red", [ "v86.4" ] ],
+    [
+      "matrix2:DIN",
+      "esp:18",
+      "green",
+      [ "v9.6", "h-403.2", "v0", "h-249.6", "v9.6", "h-28.8", "v38.4" ]
+    ],
+    [ "esp:17", "strip1:DIN", "green", [ "h43.24", "v-9.6" ] ],
+    [ "j1:J", "matrix1:VSS", "black", [ "v0" ] ],
+    [ "j3:J", "matrix1:VDD", "red", [ "v0", "h19.2", "v-9.6" ] ],
+    [ "matrix1:DIN", "esp:19", "green", [ "h-240", "v-9.6", "h-38.4", "v57.6" ] ]
+  ],
+  "serialMonitor": { "convertEol": true, "display": "always" },
+  "dependencies": {}
+}

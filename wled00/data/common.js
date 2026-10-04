@@ -200,7 +200,7 @@ function connectWs(onOpen) {
 		// create new ws connection
 		getLoc(); // ensure globals are up to date
 		let url = loc ? getURL('/ws').replace("http", "ws")
-									: "ws://" + window.location.hostname + "/ws";
+									: (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
 		ws = new WebSocket(url);
 		ws.binaryType = "arraybuffer";
 		if (onOpen) ws.onopen = () => onOpen(ws);

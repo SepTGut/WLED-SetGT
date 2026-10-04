@@ -1428,7 +1428,7 @@ function cmpP(a, b)
 
 function makeWS() {
 	if (ws || lastinfo.ws < 0) return;
-	let url = loc ? getURL('/ws').replace("http","ws") : "ws://"+window.location.hostname+"/ws";
+	let url = loc ? getURL('/ws').replace("http","ws") : (window.location.protocol === "https:" ? "wss://" : "ws://")+window.location.host+"/ws";
 	ws = new WebSocket(url);
 	ws.binaryType = "arraybuffer";
 	ws.onmessage = (e)=>{

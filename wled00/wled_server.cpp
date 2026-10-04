@@ -666,6 +666,16 @@ void initServer()
     handleStaticContent(request, FPSTR(_cpal_htm), 200, FPSTR(CONTENT_TYPE_HTML), PAGE_cpal, PAGE_cpal_length);
   });
 
+#ifdef USERMOD_AUTOMATION_ENGINE
+  static const char _automations_htm[] PROGMEM = "/automations.htm";
+  server.on(F("/automations"), HTTP_GET, [](AsyncWebServerRequest *request) {
+    handleStaticContent(request, FPSTR(_automations_htm), 200, FPSTR(CONTENT_TYPE_HTML), PAGE_automations, PAGE_automations_length);
+  });
+  server.on(_automations_htm, HTTP_GET, [](AsyncWebServerRequest *request) {
+    handleStaticContent(request, FPSTR(_automations_htm), 200, FPSTR(CONTENT_TYPE_HTML), PAGE_automations, PAGE_automations_length);
+  });
+#endif
+
 #ifdef WLED_ENABLE_WEBSOCKETS
   server.addHandler(&ws);
 #endif

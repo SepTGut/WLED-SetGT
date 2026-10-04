@@ -2,196 +2,578 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>WLED Automation Engine</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>WLED Automations</title>
 	<style>
 		:root {
-			--bg: #1a1a24;
-			--card: #242434;
-			--accent: #4361ee;
-			--text: #e2e8f0;
-			--text-dim: #94a3b8;
-			--success: #10b981;
-			--danger: #ef4444;
-			--border: #334155;
+			--bg-grad: radial-gradient(circle at 50% 0%, #1a1e2e 0%, #0c0e14 100%);
+			--glass-surface: rgba(22, 27, 40, 0.72);
+			--glass-card: rgba(28, 35, 52, 0.65);
+			--glass-card-hover: rgba(36, 46, 68, 0.85);
+			--glass-border: rgba(255, 255, 255, 0.08);
+			--glass-border-focus: rgba(0, 210, 255, 0.5);
+			--accent-cyan: #00d2ff;
+			--accent-blue: #3a7bd5;
+			--accent-glow: rgba(0, 210, 255, 0.25);
+			--accent-amber: #f59e0b;
+			--accent-emerald: #10b981;
+			--accent-rose: #f43f5e;
+			--text-main: #f1f5f9;
+			--text-sub: #94a3b8;
+			--text-dim: #64748b;
+			--radius-lg: 16px;
+			--radius-md: 10px;
+			--radius-sm: 6px;
 		}
-		* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-		body { background: var(--bg); color: var(--text); padding: 20px; max-width: 800px; margin: 0 auto; }
-		header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-		h1 { font-size: 1.5rem; font-weight: 600; color: #fff; }
-		.btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
-		.btn:hover { opacity: 0.9; }
-		.btn-danger { background: var(--danger); }
-		.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-		.rule-info { flex: 1; }
-		.rule-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; }
-		.rule-detail { font-size: 0.875rem; color: var(--text-dim); }
-		.switch { position: relative; display: inline-block; width: 44px; height: 24px; margin-right: 12px; }
-		.switch input { opacity: 0; width: 0; height: 0; }
-		.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 24px; }
-		.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-		input:checked + .slider { background-color: var(--success); }
-		input:checked + .slider:before { transform: translateX(20px); }
+
+		* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+		body { background: var(--bg-grad) fixed; color: var(--text-main); min-height: 100vh; padding: 20px 16px 40px; max-width: 840px; margin: 0 auto; line-height: 1.5; }
 		
-		/* Modal */
-		.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 100; }
+		/* Header & Glass Nav */
+		header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 24px;
+			padding: 16px 20px;
+			background: var(--glass-surface);
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
+			border: 1px solid var(--glass-border);
+			border-radius: var(--radius-lg);
+			box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+		}
+		.nav-left { display: flex; align-items: center; gap: 14px; }
+		.btn-back {
+			background: rgba(255,255,255,0.06);
+			border: 1px solid var(--glass-border);
+			color: var(--text-main);
+			padding: 8px 12px;
+			border-radius: var(--radius-sm);
+			cursor: pointer;
+			text-decoration: none;
+			font-size: 0.85rem;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			transition: all 0.2s;
+		}
+		.btn-back:hover { background: rgba(255,255,255,0.12); color: #fff; }
+		h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+		h1 span { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; background: rgba(0, 210, 255, 0.15); color: var(--accent-cyan); border-radius: 12px; border: 1px solid rgba(0, 210, 255, 0.3); }
+
+		/* Master Switch Bar */
+		.master-bar {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			background: var(--glass-surface);
+			backdrop-filter: blur(12px);
+			border: 1px solid var(--glass-border);
+			border-radius: var(--radius-md);
+			padding: 14px 20px;
+			margin-bottom: 24px;
+		}
+		.master-title { font-weight: 600; font-size: 0.95rem; }
+		.master-sub { font-size: 0.8rem; color: var(--text-sub); }
+
+		/* Buttons */
+		.btn {
+			background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+			color: #fff;
+			border: none;
+			padding: 9px 18px;
+			border-radius: var(--radius-sm);
+			cursor: pointer;
+			font-weight: 600;
+			font-size: 0.875rem;
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			transition: all 0.2s;
+			box-shadow: 0 4px 14px var(--accent-glow);
+		}
+		.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); filter: brightness(1.08); }
+		.btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); box-shadow: none; color: var(--text-main); }
+		.btn-ghost:hover { background: rgba(255,255,255,0.12); box-shadow: none; }
+		.btn-danger { background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: var(--accent-rose); box-shadow: none; padding: 6px 12px; font-size: 0.8rem; }
+		.btn-danger:hover { background: var(--accent-rose); color: #fff; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4); }
+
+		/* Rule Cards */
+		.rules-grid { display: flex; flex-direction: column; gap: 12px; }
+		.rule-card {
+			background: var(--glass-card);
+			backdrop-filter: blur(12px);
+			-webkit-backdrop-filter: blur(12px);
+			border: 1px solid var(--glass-border);
+			border-radius: var(--radius-md);
+			padding: 16px 20px;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+			transition: all 0.25s ease;
+		}
+		.rule-card:hover { background: var(--glass-card-hover); border-color: rgba(255, 255, 255, 0.14); transform: translateY(-2px); }
+		.rule-main { flex: 1; min-width: 240px; }
+		.rule-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+		.rule-name { font-weight: 600; font-size: 1.05rem; }
+		.rule-id { font-size: 0.75rem; color: var(--text-dim); }
+
+		/* Flow Badges */
+		.flow-container { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; }
+		.badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 10px;
+			border-radius: 20px;
+			font-size: 0.78rem;
+			font-weight: 500;
+		}
+		.badge-trigger { background: rgba(0, 210, 255, 0.12); border: 1px solid rgba(0, 210, 255, 0.25); color: #38bdf8; }
+		.badge-action { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; }
+		.flow-arrow { color: var(--text-dim); font-size: 0.9rem; }
+
+		/* Card Actions */
+		.card-actions { display: flex; align-items: center; gap: 10px; }
+		
+		/* Switch */
+		.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+		.switch input { opacity: 0; width: 0; height: 0; }
+		.slider {
+			position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+			background-color: rgba(255, 255, 255, 0.1);
+			transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			border-radius: 24px;
+			border: 1px solid var(--glass-border);
+		}
+		.slider:before {
+			position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+			background-color: #cbd5e1;
+			transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			border-radius: 50%;
+		}
+		input:checked + .slider { background-color: var(--accent-emerald); border-color: var(--accent-emerald); }
+		input:checked + .slider:before { transform: translateX(20px); background-color: #fff; }
+
+		/* Modal Dialog */
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0; left: 0; width: 100%; height: 100%;
+			background: rgba(4, 7, 13, 0.78);
+			backdrop-filter: blur(8px);
+			-webkit-backdrop-filter: blur(8px);
+			align-items: center;
+			justify-content: center;
+			z-index: 100;
+			padding: 16px;
+		}
 		.modal.active { display: flex; }
-		.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
-		.form-group { margin-bottom: 16px; }
-		label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--text-dim); }
-		input[type="text"], input[type="number"], select { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.95rem; }
-		.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+		.modal-content {
+			background: #181d2c;
+			border: 1px solid rgba(255, 255, 255, 0.12);
+			border-radius: var(--radius-lg);
+			padding: 24px;
+			width: 100%;
+			max-width: 520px;
+			box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+			max-height: 90vh;
+			overflow-y: auto;
+		}
+		.modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.01em; }
+		.form-section {
+			background: rgba(255, 255, 255, 0.03);
+			border: 1px solid var(--glass-border);
+			border-radius: var(--radius-md);
+			padding: 14px 16px;
+			margin-bottom: 16px;
+		}
+		.form-section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-cyan); margin-bottom: 12px; }
+		.form-group { margin-bottom: 14px; }
+		.form-group:last-child { margin-bottom: 0; }
+		label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; }
+		input[type="text"], input[type="number"], select {
+			width: 100%;
+			padding: 10px 12px;
+			background: rgba(10, 13, 20, 0.85);
+			border: 1px solid var(--glass-border);
+			border-radius: var(--radius-sm);
+			color: var(--text-main);
+			font-size: 0.9rem;
+			outline: none;
+			transition: border-color 0.2s, box-shadow 0.2s;
+		}
+		input[type="text"]:focus, input[type="number"]:focus, select:focus {
+			border-color: var(--accent-cyan);
+			box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.2);
+		}
+		.days-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+		.day-pill {
+			flex: 1;
+			text-align: center;
+			padding: 6px 0;
+			font-size: 0.78rem;
+			font-weight: 600;
+			border-radius: var(--radius-sm);
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid var(--glass-border);
+			cursor: pointer;
+			user-select: none;
+			transition: all 0.15s;
+		}
+		.day-pill.active { background: rgba(0, 210, 255, 0.2); border-color: var(--accent-cyan); color: #fff; }
+		.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+		/* Toast Notification */
+		#toast {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			background: rgba(15, 23, 42, 0.95);
+			color: #fff;
+			padding: 12px 20px;
+			border-radius: var(--radius-sm);
+			border: 1px solid var(--glass-border);
+			box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+			backdrop-filter: blur(10px);
+			font-size: 0.875rem;
+			transform: translateY(100px);
+			opacity: 0;
+			transition: all 0.3s ease;
+			z-index: 200;
+		}
+		#toast.show { transform: translateY(0); opacity: 1; }
+
+		.empty-state { text-align: center; padding: 48px 16px; color: var(--text-dim); }
+		.empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
 	</style>
 </head>
 <body>
 	<header>
-		<h1>Automation Rules</h1>
-		<button class="btn" onclick="openModal()">+ Add Rule</button>
+		<div class="nav-left">
+			<a href="/" class="btn-back">&larr; Back</a>
+			<h1>Automations <span>v2</span></h1>
+		</div>
+		<button class="btn" onclick="openModal()">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+			Add Rule
+		</button>
 	</header>
 
-	<div id="rulesList">Loading rules...</div>
+	<div class="master-bar">
+		<div>
+			<div class="master-title">Automation Engine</div>
+			<div class="master-sub">Master toggle for all background rules</div>
+		</div>
+		<label class="switch">
+			<input type="checkbox" id="masterToggle" onchange="toggleMaster(this.checked)">
+			<span class="slider"></span>
+		</label>
+	</div>
 
-	<!-- Add / Edit Modal -->
+	<div class="rules-grid" id="rulesList">
+		<div class="empty-state">
+			<div class="empty-icon">&#9881;</div>
+			<div>Loading automation rules...</div>
+		</div>
+	</div>
+
+	<!-- Add / Edit Rule Modal -->
 	<div class="modal" id="ruleModal">
 		<div class="modal-content">
-			<h2 id="modalTitle" style="margin-bottom: 16px;">Add Rule</h2>
+			<div class="modal-title" id="modalTitle">New Automation Rule</div>
 			<form id="ruleForm" onsubmit="saveRule(event)">
 				<input type="hidden" id="ruleId">
+				
 				<div class="form-group">
 					<label>Rule Name</label>
-					<input type="text" id="ruleName" required placeholder="e.g. Night Preset">
+					<input type="text" id="ruleName" required placeholder="e.g. Sunset Warm Preset">
 				</div>
-				<div class="form-group">
-					<label>Trigger Type</label>
-					<select id="trigType" onchange="updateFormFields()">
-						<option value="0">Time (HH:MM)</option>
-						<option value="1">Sunrise / Sunset</option>
-						<option value="2">WLED State Change</option>
-						<option value="3">MQTT Message</option>
-					</select>
-				</div>
-				
-				<!-- Trigger Specific Fields -->
-				<div id="trigTimeFields" class="form-group">
-					<label>Time (Hour / Minute)</label>
-					<div style="display: flex; gap: 8px;">
-						<input type="number" id="timeH" min="0" max="23" placeholder="Hour (0-23)">
-						<input type="number" id="timeM" min="0" max="59" placeholder="Min (0-59)">
+
+				<!-- Trigger Section -->
+				<div class="form-section">
+					<div class="form-section-title">Trigger When</div>
+					<div class="form-group">
+						<label>Trigger Type</label>
+						<select id="trigType" onchange="updateFormFields()">
+							<option value="0">Clock Time (Schedule)</option>
+							<option value="1">Sunrise / Sunset</option>
+							<option value="2">State / Preset Change</option>
+							<option value="3">MQTT Message</option>
+						</select>
+					</div>
+
+					<!-- Time Fields -->
+					<div id="trigTimeFields">
+						<div class="form-group">
+							<label>Time (24-Hour)</label>
+							<div style="display: flex; gap: 8px;">
+								<input type="number" id="timeH" min="0" max="23" placeholder="HH (0-23)">
+								<input type="number" id="timeM" min="0" max="59" placeholder="MM (0-59)">
+							</div>
+						</div>
+						<div class="form-group">
+							<label>Active Days</label>
+							<div class="days-grid" id="daysGrid">
+								<div class="day-pill active" data-day="0">Sun</div>
+								<div class="day-pill active" data-day="1">Mon</div>
+								<div class="day-pill active" data-day="2">Tue</div>
+								<div class="day-pill active" data-day="3">Wed</div>
+								<div class="day-pill active" data-day="4">Thu</div>
+								<div class="day-pill active" data-day="5">Fri</div>
+								<div class="day-pill active" data-day="6">Sat</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Solar Fields -->
+					<div id="trigSolarFields" style="display: none;">
+						<div class="form-group">
+							<label>Solar Event</label>
+							<select id="solarType">
+								<option value="0">Sunrise</option>
+								<option value="1">Sunset</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label>Offset in Minutes (+ / -)</label>
+							<input type="number" id="solarOffset" value="0" placeholder="e.g. -20 for 20m before">
+						</div>
+					</div>
+
+					<!-- State Fields -->
+					<div id="trigStateFields" style="display: none;">
+						<div class="form-group">
+							<label>Condition</label>
+							<select id="stateType">
+								<option value="0">Power State (On / Off)</option>
+								<option value="1">Preset Activated</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label>Target Value</label>
+							<select id="stateValPower">
+								<option value="1">Turned ON</option>
+								<option value="0">Turned OFF</option>
+							</select>
+							<input type="number" id="stateValPreset" min="1" placeholder="Preset ID" style="display: none;">
+						</div>
+					</div>
+
+					<!-- MQTT Fields -->
+					<div id="trigMqttFields" style="display: none;">
+						<div class="form-group">
+							<label>MQTT Topic</label>
+							<input type="text" id="mqttTopic" placeholder="wled/device/trigger">
+						</div>
+						<div class="form-group">
+							<label>Expected Payload (Leave empty for any)</label>
+							<input type="text" id="mqttPayload" placeholder="ON">
+						</div>
 					</div>
 				</div>
 
-				<div id="trigSolarFields" class="form-group" style="display: none;">
-					<label>Solar Event</label>
-					<select id="solarType">
-						<option value="0">Sunrise</option>
-						<option value="1">Sunset</option>
-					</select>
-					<label style="margin-top: 8px;">Offset (Minutes, +/-)</label>
-					<input type="number" id="solarOffset" value="0" placeholder="e.g. -15 for 15m before">
-				</div>
+				<!-- Action Section -->
+				<div class="form-section">
+					<div class="form-section-title">Then Perform Action</div>
+					<div class="form-group">
+						<label>Action Type</label>
+						<select id="actType" onchange="updateFormFields()">
+							<option value="0">Apply Preset</option>
+							<option value="1">Set Power State</option>
+							<option value="2">Custom JSON API Command</option>
+						</select>
+					</div>
 
-				<div id="trigStateFields" class="form-group" style="display: none;">
-					<label>State Trigger Event</label>
-					<select id="stateType">
-						<option value="0">Power ON / OFF</option>
-						<option value="1">Preset Change</option>
-					</select>
-					<label style="margin-top: 8px;">Target Value (1=ON / 0=OFF / Preset ID)</label>
-					<input type="number" id="stateVal" min="0" value="1">
-				</div>
+					<div id="actPresetFields">
+						<div class="form-group">
+							<label>Target Preset</label>
+							<select id="presetSelect"></select>
+						</div>
+					</div>
 
-				<div id="trigMqttFields" class="form-group" style="display: none;">
-					<label>MQTT Topic</label>
-					<input type="text" id="mqttTopic" placeholder="wled/trigger">
-					<label style="margin-top: 8px;">Expected Payload (Optional)</label>
-					<input type="text" id="mqttPayload" placeholder="ON">
-				</div>
+					<div id="actPowerFields" style="display: none;">
+						<div class="form-group">
+							<label>Power State</label>
+							<select id="powerState">
+								<option value="1">Turn ON</option>
+								<option value="0">Turn OFF</option>
+								<option value="2">Toggle</option>
+							</select>
+						</div>
+					</div>
 
-				<div class="form-group">
-					<label>Action Type</label>
-					<select id="actType" onchange="updateFormFields()">
-						<option value="0">Apply Preset</option>
-						<option value="1">Toggle Power</option>
-						<option value="2">API Command (JSON)</option>
-					</select>
-				</div>
-
-				<!-- Action Specific Fields -->
-				<div id="actPresetFields" class="form-group">
-					<label>Preset ID</label>
-					<input type="number" id="presetId" min="1" value="1">
-				</div>
-
-				<div id="actPowerFields" class="form-group" style="display: none;">
-					<label>Power State</label>
-					<select id="powerState">
-						<option value="1">Turn ON</option>
-						<option value="0">Turn OFF</option>
-						<option value="2">Toggle</option>
-					</select>
-				</div>
-
-				<div id="actApiFields" class="form-group" style="display: none;">
-					<label>JSON API Payload</label>
-					<input type="text" id="apiCommand" placeholder='{"on":true,"bri":128}'>
+					<div id="actApiFields" style="display: none;">
+						<div class="form-group">
+							<label>JSON API Payload</label>
+							<input type="text" id="apiCommand" placeholder='{"on":true,"bri":128,"seg":[{"fx":1}]}'>
+						</div>
+					</div>
 				</div>
 
 				<div class="modal-actions">
-					<button type="button" class="btn btn-danger" onclick="closeModal()">Cancel</button>
-					<button type="submit" class="btn">Save Rule</button>
+					<button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+					<button type="submit" class="btn">Save Automation</button>
 				</div>
 			</form>
 		</div>
 	</div>
 
+	<div id="toast"></div>
+
 	<script>
 		let loadedRules = [];
+		let presetsList = [];
+		let isEngineEnabled = true;
 
 		function sanitizeHtml(str) {
 			if (!str) return '';
 			return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 		}
 
+		function showToast(msg) {
+			const t = document.getElementById('toast');
+			t.textContent = msg;
+			t.classList.add('show');
+			setTimeout(() => t.classList.remove('show'), 2600);
+		}
+
+		// Initialize day-of-week pill toggles
+		document.querySelectorAll('.day-pill').forEach(pill => {
+			pill.addEventListener('click', () => pill.classList.toggle('active'));
+		});
+
+		function getDaysMask() {
+			let mask = 0;
+			document.querySelectorAll('.day-pill').forEach(pill => {
+				if (pill.classList.contains('active')) {
+					mask |= (1 << parseInt(pill.dataset.day));
+				}
+			});
+			return mask;
+		}
+
+		function setDaysMask(mask) {
+			document.querySelectorAll('.day-pill').forEach(pill => {
+				const day = parseInt(pill.dataset.day);
+				if ((mask & (1 << day)) !== 0) pill.classList.add('active');
+				else pill.classList.remove('active');
+			});
+		}
+
+		async function fetchPresets() {
+			try {
+				const res = await fetch('/presets.json');
+				if (res.ok) {
+					const data = await res.json();
+					presetsList = [];
+					for (let k in data) {
+						if (data[k] && data[k].n) presetsList.push({ id: parseInt(k), name: data[k].n });
+					}
+					populatePresetDropdown();
+				}
+			} catch(e) {
+				// Fallback preset options
+				presetsList = [{ id: 1, name: "Preset 1" }, { id: 2, name: "Preset 2" }];
+				populatePresetDropdown();
+			}
+		}
+
+		function populatePresetDropdown() {
+			const sel = document.getElementById('presetSelect');
+			sel.innerHTML = presetsList.map(p => `<option value="${p.id}">${p.id}: ${sanitizeHtml(p.name)}</option>`).join('');
+		}
+
 		async function fetchRules() {
+			try {
+				// First check LittleFS /automations.json directly
+				const res = await fetch('/automations.json');
+				if (res.ok) {
+					const data = await res.json();
+					loadedRules = data.rules || [];
+					isEngineEnabled = data.enabled !== undefined ? data.enabled : true;
+					document.getElementById('masterToggle').checked = isEngineEnabled;
+					renderRules();
+					return;
+				}
+			} catch(e) { /* fallback */ }
+
+			// Fallback: query /json/state
 			try {
 				const res = await fetch('/json/state');
 				const data = await res.json();
-				if (data.AutomationEngine && data.AutomationEngine.rules) {
-					loadedRules = data.AutomationEngine.rules;
-					renderRules();
-				} else {
-					document.getElementById('rulesList').innerText = 'Automation Engine not enabled or no rules found.';
+				if (data.AutomationEngine) {
+					isEngineEnabled = data.AutomationEngine.enabled;
+					document.getElementById('masterToggle').checked = isEngineEnabled;
 				}
-			} catch(e) {
-				document.getElementById('rulesList').innerText = 'Error loading rules: ' + e;
-			}
+			} catch(e) {}
+			renderRules();
 		}
 
 		function renderRules() {
 			const container = document.getElementById('rulesList');
-			if (loadedRules.length === 0) {
-				container.innerHTML = '<p style="color: var(--text-dim);">No automation rules created yet.</p>';
+			if (!loadedRules || loadedRules.length === 0) {
+				container.innerHTML = `
+					<div class="empty-state">
+						<div class="empty-icon">&#128337;</div>
+						<div style="font-weight: 600; margin-bottom: 4px;">No Automations Configured</div>
+						<div style="font-size: 0.85rem;">Click "+ Add Rule" above to create scheduled, solar, or MQTT automations.</div>
+					</div>`;
 				return;
 			}
 
-			const trigNames = ["Time", "Sunrise/Sunset", "State Change", "MQTT"];
-			const actNames = ["Apply Preset", "Toggle Power", "API Command"];
+			const trigLabels = ["Clock Time", "Solar Event", "State Change", "MQTT Message"];
+			const actLabels = ["Apply Preset", "Power State", "API Command"];
 
-			container.innerHTML = loadedRules.map(r => `
-				<div class="card">
-					<div class="rule-info">
-						<div class="rule-name">${sanitizeHtml(r.name) || 'Rule #' + r.id}</div>
-						<div class="rule-detail">Trigger: ${trigNames[r.trigType]} &rarr; Action: ${actNames[r.actType]}</div>
+			container.innerHTML = loadedRules.map(r => {
+				let trigDetail = "";
+				if (r.trigType === 0) {
+					trigDetail = `${String(r.timeH).padStart(2, '0')}:${String(r.timeM).padStart(2, '0')}`;
+				} else if (r.trigType === 1) {
+					trigDetail = (r.solarType === 0 ? "Sunrise" : "Sunset") + (r.solarOffset ? ` (${r.solarOffset > 0 ? '+' : ''}${r.solarOffset}m)` : "");
+				} else if (r.trigType === 2) {
+					trigDetail = r.stateType === 0 ? (r.stateVal ? "Turned ON" : "Turned OFF") : `Preset #${r.stateVal}`;
+				} else if (r.trigType === 3) {
+					trigDetail = sanitizeHtml(r.mqttTopic);
+				}
+
+				let actDetail = "";
+				if (r.actType === 0) {
+					const found = presetsList.find(p => p.id === r.presetId);
+					actDetail = found ? `Preset #${r.presetId} (${sanitizeHtml(found.name)})` : `Preset #${r.presetId}`;
+				} else if (r.actType === 1) {
+					actDetail = r.powerState === 0 ? "Turn OFF" : (r.powerState === 1 ? "Turn ON" : "Toggle");
+				} else if (r.actType === 2) {
+					actDetail = "Custom JSON API";
+				}
+
+				return `
+					<div class="rule-card">
+						<div class="rule-main">
+							<div class="rule-header">
+								<div class="rule-name">${sanitizeHtml(r.name) || 'Rule #' + r.id}</div>
+								<div class="rule-id">#${r.id}</div>
+							</div>
+							<div class="flow-container">
+								<span class="badge badge-trigger">&#9889; ${trigLabels[r.trigType] || 'Trigger'}: ${trigDetail}</span>
+								<span class="flow-arrow">&rarr;</span>
+								<span class="badge badge-action">&#10024; ${actDetail}</span>
+							</div>
+						</div>
+						<div class="card-actions">
+							<label class="switch">
+								<input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule(${r.id}, this.checked)">
+								<span class="slider"></span>
+							</label>
+							<button class="btn btn-ghost" style="padding: 6px 10px;" onclick="editRule(${r.id})">Edit</button>
+							<button class="btn btn-danger" onclick="deleteRule(${r.id})">Delete</button>
+						</div>
 					</div>
-					<div>
-						<label class="switch">
-							<input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule(${r.id}, this.checked)">
-							<span class="slider"></span>
-						</label>
-						<button class="btn btn-danger" onclick="deleteRule(${r.id})">Delete</button>
-					</div>
-				</div>
-			`).join('');
+				`;
+			}).join('');
 		}
 
 		function updateFormFields() {
@@ -210,6 +592,8 @@
 		function openModal() {
 			document.getElementById('ruleForm').reset();
 			document.getElementById('ruleId').value = '';
+			document.getElementById('modalTitle').textContent = "New Automation Rule";
+			setDaysMask(0x7F);
 			updateFormFields();
 			document.getElementById('ruleModal').classList.add('active');
 		}
@@ -218,25 +602,66 @@
 			document.getElementById('ruleModal').classList.remove('active');
 		}
 
+		function editRule(id) {
+			const r = loadedRules.find(x => x.id === id);
+			if (!r) return;
+
+			document.getElementById('ruleId').value = r.id;
+			document.getElementById('modalTitle').textContent = "Edit Automation Rule";
+			document.getElementById('ruleName').value = r.name || '';
+			document.getElementById('trigType').value = r.trigType;
+			document.getElementById('timeH').value = r.timeH || 0;
+			document.getElementById('timeM').value = r.timeM || 0;
+			setDaysMask(r.days !== undefined ? r.days : 0x7F);
+			document.getElementById('solarType').value = r.solarType || 0;
+			document.getElementById('solarOffset').value = r.solarOffset || 0;
+			document.getElementById('stateType').value = r.stateType || 0;
+			if (r.stateType === 0) document.getElementById('stateValPower').value = r.stateVal;
+			else document.getElementById('stateValPreset').value = r.stateVal;
+			document.getElementById('mqttTopic').value = r.mqttTopic || '';
+			document.getElementById('mqttPayload').value = r.mqttPayload || '';
+			document.getElementById('actType').value = r.actType;
+			document.getElementById('presetSelect').value = r.presetId || 1;
+			document.getElementById('powerState').value = r.powerState !== undefined ? r.powerState : 1;
+			document.getElementById('apiCommand').value = r.apiCommand || '';
+
+			updateFormFields();
+			document.getElementById('ruleModal').classList.add('active');
+		}
+
 		async function saveRule(e) {
 			e.preventDefault();
+			const idVal = parseInt(document.getElementById('ruleId').value);
+			let nextId = idVal;
+			if (!nextId) {
+				const maxId = loadedRules.reduce((m, r) => Math.max(m, r.id || 0), 0);
+				nextId = maxId + 1;
+			}
+
+			const tt = parseInt(document.getElementById('trigType').value);
+			const st = parseInt(document.getElementById('stateType').value);
+			const stateVal = (tt === 2 && st === 0) 
+				? parseInt(document.getElementById('stateValPower').value) 
+				: (parseInt(document.getElementById('stateValPreset').value) || 1);
+
 			const rule = {
-				id: parseInt(document.getElementById('ruleId').value) || (loadedRules.length + 1),
+				id: nextId,
 				enabled: true,
-				name: document.getElementById('ruleName').value,
-				trigType: parseInt(document.getElementById('trigType').value),
+				name: document.getElementById('ruleName').value.trim(),
+				trigType: tt,
 				timeH: parseInt(document.getElementById('timeH').value) || 0,
 				timeM: parseInt(document.getElementById('timeM').value) || 0,
+				days: getDaysMask(),
 				solarType: parseInt(document.getElementById('solarType').value) || 0,
 				solarOffset: parseInt(document.getElementById('solarOffset').value) || 0,
-				stateType: parseInt(document.getElementById('stateType').value) || 0,
-				stateVal: parseInt(document.getElementById('stateVal').value) || 0,
-				mqttTopic: document.getElementById('mqttTopic').value,
-				mqttPayload: document.getElementById('mqttPayload').value,
+				stateType: st,
+				stateVal: stateVal,
+				mqttTopic: document.getElementById('mqttTopic').value.trim(),
+				mqttPayload: document.getElementById('mqttPayload').value.trim(),
 				actType: parseInt(document.getElementById('actType').value),
-				presetId: parseInt(document.getElementById('presetId').value) || 1,
-				powerState: parseInt(document.getElementById('powerState').value) || 0,
-				apiCommand: document.getElementById('apiCommand').value
+				presetId: parseInt(document.getElementById('presetSelect').value) || 1,
+				powerState: parseInt(document.getElementById('powerState').value) || 1,
+				apiCommand: document.getElementById('apiCommand').value.trim()
 			};
 
 			const idx = loadedRules.findIndex(r => r.id === rule.id);
@@ -245,6 +670,7 @@
 
 			await syncRules();
 			closeModal();
+			showToast("Rule saved successfully");
 		}
 
 		async function toggleRule(id, state) {
@@ -252,23 +678,45 @@
 			if (r) {
 				r.enabled = state;
 				await syncRules();
+				showToast(state ? "Rule enabled" : "Rule disabled");
 			}
 		}
 
 		async function deleteRule(id) {
+			if (!confirm("Are you sure you want to delete this rule?")) return;
 			loadedRules = loadedRules.filter(r => r.id !== id);
 			await syncRules();
+			renderRules();
+			showToast("Rule deleted");
+		}
+
+		async function toggleMaster(enabled) {
+			isEngineEnabled = enabled;
+			await syncRules();
+			showToast(enabled ? "Automation Engine active" : "Automation Engine paused");
 		}
 
 		async function syncRules() {
-			await fetch('/json/state', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ AutomationEngine: { rules: loadedRules } })
-			});
-			fetchRules();
+			const payload = {
+				enabled: isEngineEnabled,
+				rules: loadedRules
+			};
+
+			// Save via /json/state to let the usermod write to flash and update runtime
+			try {
+				await fetch('/json/state', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ AutomationEngine: payload })
+				});
+			} catch(e) {
+				showToast("Failed to sync with device");
+			}
+			renderRules();
 		}
 
+		// Initialize
+		fetchPresets();
 		fetchRules();
 	</script>
 </body>
