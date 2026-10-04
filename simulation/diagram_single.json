@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "author": "Antigravity AI",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip1",
+      "top": -200,
+      "left": 200,
+      "attrs": {
+        "pixels": "150",
+        "gamma": "2.2"
+      }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip2",
+      "top": -100,
+      "left": 200,
+      "attrs": {
+        "pixels": "150",
+        "gamma": "2.2"
+      }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip3",
+      "top": 0,
+      "left": 200,
+      "attrs": {
+        "pixels": "300",
+        "gamma": "2.2"
+      }
+    },
+    {
+      "type": "wokwi-neopixel-matrix",
+      "id": "matrix1",
+      "top": 120,
+      "left": 200,
+      "attrs": {
+        "rows": "20",
+        "cols": "15",
+        "layout": "serpentine"
+      }
+    }
+  ],
+  "connections": [
+    [ "esp:GND.1", "strip1:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip1:VCC", "red", [ "v0" ] ],
+    [ "esp:16", "strip1:DIN", "green", [ "h0" ] ],
+
+    [ "esp:GND.1", "strip2:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip2:VCC", "red", [ "v0" ] ],
+    [ "esp:17", "strip2:DIN", "yellow", [ "h0" ] ],
+
+    [ "esp:GND.1", "strip3:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "strip3:VCC", "red", [ "v0" ] ],
+    [ "esp:18", "strip3:DIN", "orange", [ "h0" ] ],
+
+    [ "esp:GND.1", "matrix1:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "matrix1:VCC", "red", [ "v0" ] ],
+    [ "esp:19", "matrix1:DIN", "blue", [ "h0" ] ]
+  ]
+}

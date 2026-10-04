@@ -26,15 +26,26 @@ def create_release(source):
         with open("package.json", "r") as package:
             version = json.load(package)["version"]        
         release_file = os.path.join(OUTPUT_DIR, "release", f"WLED_{version}_{release_name}.bin")
+        release_elf_file = os.path.join(OUTPUT_DIR, "release", f"WLED_{version}_{release_name}.elf")
         release_gz_file = release_file + ".gz"
         print(f"Copying {source} to {release_file}")
         shutil.copy(source, release_file)
+        variant = env["PIOENV"]
+        source_elf = os.path.join(env["PROJECT_BUILD_DIR"], variant, env["PROGNAME"] + ".elf")
+        if os.path.isfile(source_elf):
+            print(f"Copying {source_elf} to {release_elf_file}")
+            shutil.copy(source_elf, release_elf_file)
         bin_gzip(release_file, release_gz_file)
     else:
         variant = env["PIOENV"]
         bin_file = "{}firmware{}{}.bin".format(OUTPUT_DIR, os.path.sep, variant)
+        elf_file = "{}firmware{}{}.elf".format(OUTPUT_DIR, os.path.sep, variant)
         print(f"Copying {source} to {bin_file}")
         shutil.copy(source, bin_file)
+        source_elf = os.path.join(env["PROJECT_BUILD_DIR"], variant, env["PROGNAME"] + ".elf")
+        if os.path.isfile(source_elf):
+            print(f"Copying {source_elf} to {elf_file}")
+            shutil.copy(source_elf, elf_file)
 
 def bin_rename_copy(source, target, env):
     _create_dirs()

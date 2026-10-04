@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "author": "Antigravity AI",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp_master",
+      "top": 0,
+      "left": 0,
+      "attrs": { "name": "Master 2D Matrix" }
+    },
+    {
+      "type": "wokwi-neopixel-matrix",
+      "id": "matrix_master",
+      "top": 0,
+      "left": 220,
+      "attrs": {
+        "rows": "20",
+        "cols": "15",
+        "layout": "serpentine"
+      }
+    },
+
+    {
+      "type": "board-esp32-c3-devkitm-1",
+      "id": "esp_slave1",
+      "top": 360,
+      "left": 0,
+      "attrs": { "name": "Slave Strip 1" }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip_slave1",
+      "top": 360,
+      "left": 220,
+      "attrs": { "pixels": "150", "gamma": "2.2" }
+    },
+
+    {
+      "type": "board-esp32-c3-devkitm-1",
+      "id": "esp_slave2",
+      "top": 540,
+      "left": 0,
+      "attrs": { "name": "Slave Strip 2" }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip_slave2",
+      "top": 540,
+      "left": 220,
+      "attrs": { "pixels": "150", "gamma": "2.2" }
+    },
+
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp_slave3",
+      "top": 720,
+      "left": 0,
+      "attrs": { "name": "Slave Strip 3" }
+    },
+    {
+      "type": "wokwi-neopixel-canvas",
+      "id": "strip_slave3",
+      "top": 720,
+      "left": 220,
+      "attrs": { "pixels": "300", "gamma": "2.2" }
+    }
+  ],
+  "connections": [
+    [ "esp_master:GND.1", "matrix_master:GND", "black", [ "v0" ] ],
+    [ "esp_master:5V", "matrix_master:VCC", "red", [ "v0" ] ],
+    [ "esp_master:19", "matrix_master:DIN", "blue", [ "h0" ] ],
+
+    [ "esp_slave1:GND.1", "strip_slave1:GND", "black", [ "v0" ] ],
+    [ "esp_slave1:5V", "strip_slave1:VCC", "red", [ "v0" ] ],
+    [ "esp_slave1:2", "strip_slave1:DIN", "green", [ "h0" ] ],
+
+    [ "esp_slave2:GND.1", "strip_slave2:GND", "black", [ "v0" ] ],
+    [ "esp_slave2:5V", "strip_slave2:VCC", "red", [ "v0" ] ],
+    [ "esp_slave2:3", "strip_slave2:DIN", "yellow", [ "h0" ] ],
+
+    [ "esp_slave3:GND.1", "strip_slave3:GND", "black", [ "v0" ] ],
+    [ "esp_slave3:5V", "strip_slave3:VCC", "red", [ "v0" ] ],
+    [ "esp_slave3:18", "strip_slave3:DIN", "orange", [ "h0" ] ]
+  ]
+}
